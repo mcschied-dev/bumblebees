@@ -6,5 +6,4 @@ edition = "2021"
 [dependencies]
 ggez = "0.9.3"
 winit = { version = "0.28", features = ["serde"] }
-rodio = "0.17"
-radio = "0.12.1"
+
