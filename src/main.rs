@@ -1,5 +1,3 @@
-// @mcschied
-
 use ggez::audio::{SoundSource, Source};
 use ggez::event::{self, EventHandler};
 use ggez::graphics::{self, Color, Image, Rect, Text, TextFragment, Drawable};
@@ -34,17 +32,20 @@ enum GameState {
 
 struct MainState {
     player_x: f32,
+    base_width: f32,        // Breite der Basisstation
     bullets: Vec<Bullet>,
     enemies: Vec<Enemy>,
     enemy_direction: f32,
     enemy_speed: f32,
     wave_number: u32,
+    available_shots: u32,   // Anzahl der Schüsse
     state: GameState,
     scroll_text: Text,
     text_x: Arc<Mutex<f32>>,
     shoot_sound: Source,
     hit_sound: Source,
     background: Image,
+    score: u32,
 }
 
 impl MainState {
@@ -56,13 +57,13 @@ impl MainState {
         let scroll_text = Text::new(TextFragment {
             text: "Happy New Year Octavio".to_string(),
             color: Some(Color::from_rgb(255, 255, 255)),
-            scale: Some(graphics::PxScale::from(60.0)),
+            scale: Some(graphics::PxScale::from(30.0)),
             ..Default::default()
         });
 
         let text_x = Arc::new(Mutex::new(SCREEN_WIDTH));
 
-        // Hintergrund-Thread für die Laufschrift starten
+        // Hintergrund-Thread für die Laufschrift
         let text_x_clone = Arc::clone(&text_x);
         thread::spawn(move || {
             loop {
@@ -79,27 +80,33 @@ impl MainState {
 
         Ok(MainState {
             player_x: SCREEN_WIDTH / 2.0,
+            base_width: 50.0, // Anfangsbreite der Basisstation
             bullets: Vec::new(),
             enemies: MainState::generate_enemies(1),
             enemy_direction: 1.0,
             enemy_speed: INITIAL_ENEMY_SPEED,
             wave_number: 1,
+            available_shots: 1, // Start mit 1 Schuss
             state: GameState::Playing,
             scroll_text,
             text_x,
             shoot_sound,
             hit_sound,
             background,
+            score: 0,
         })
     }
 
     fn reset(&mut self) {
         self.player_x = SCREEN_WIDTH / 2.0;
+        self.base_width = 50.0; // Breite der Basisstation zurücksetzen
         self.bullets.clear();
         self.enemies = MainState::generate_enemies(1);
         self.enemy_direction = 1.0;
         self.enemy_speed = INITIAL_ENEMY_SPEED;
         self.wave_number = 1;
+        self.available_shots = 1; // Zurücksetzen auf 1 Schuss
+        self.score = 0;
 
         let mut text_x = self.text_x.lock().unwrap();
         *text_x = SCREEN_WIDTH;
@@ -109,7 +116,7 @@ impl MainState {
 
     fn generate_enemies(wave: u32) -> Vec<Enemy> {
         let mut enemies = Vec::new();
-        let rows = 3 + wave as usize; // Mehr Feinde pro Welle
+        let rows = 3 + wave as usize;
         for i in 0..10 {
             for j in 0..rows {
                 enemies.push(Enemy {
@@ -137,7 +144,7 @@ impl EventHandler for MainState {
             self.player_x += PLAYER_SPEED * dt;
         }
 
-        self.player_x = self.player_x.clamp(25.0, SCREEN_WIDTH - 25.0);
+        self.player_x = self.player_x.clamp(self.base_width / 2.0, SCREEN_WIDTH - self.base_width / 2.0);
 
         for bullet in &mut self.bullets {
             bullet.y -= BULLET_SPEED * dt;
@@ -159,6 +166,8 @@ impl EventHandler for MainState {
             }
         }
 
+        let initial_enemy_count = self.enemies.len();
+
         self.enemies.retain(|enemy| {
             !self.bullets.iter().any(|bullet| {
                 let dx = enemy.x - bullet.x;
@@ -167,9 +176,14 @@ impl EventHandler for MainState {
             })
         });
 
+        let enemies_destroyed = initial_enemy_count - self.enemies.len();
+        self.score += enemies_destroyed as u32 * 10;
+
         if self.enemies.is_empty() {
             self.wave_number += 1;
-            self.enemy_speed += 20.0; // Geschwindigkeit erhöhen
+            self.enemy_speed += 20.0;
+            self.available_shots += 1; // Erhöhe die Anzahl der Schüsse
+            self.base_width += 20.0; // Verbreitere die Basisstation
             self.enemies = MainState::generate_enemies(self.wave_number);
         }
 
@@ -189,7 +203,13 @@ impl EventHandler for MainState {
         let text_position = graphics::DrawParam::default().dest([text_x, 20.0]);
         canvas.draw(&self.scroll_text, text_position);
 
-        let player_rect = Rect::new(self.player_x - 25.0, SCREEN_HEIGHT - 50.0, 50.0, 20.0);
+        // Basisstation zeichnen
+        let player_rect = Rect::new(
+            self.player_x - self.base_width / 2.0,
+            SCREEN_HEIGHT - 50.0,
+            self.base_width,
+            20.0,
+        );
         let player_color = Color::from_rgb(0, 255, 0);
         let player_mesh = graphics::Mesh::new_rectangle(
             ctx,
@@ -199,6 +219,7 @@ impl EventHandler for MainState {
         )?;
         canvas.draw(&player_mesh, graphics::DrawParam::default());
 
+        // Schüsse zeichnen
         for bullet in &self.bullets {
             let bullet_rect = Rect::new(bullet.x - 5.0, bullet.y - 10.0, 10.0, 20.0);
             let bullet_color = Color::WHITE;
@@ -211,6 +232,7 @@ impl EventHandler for MainState {
             canvas.draw(&bullet_mesh, graphics::DrawParam::default());
         }
 
+        // Feinde zeichnen
         for enemy in &self.enemies {
             let enemy_rect = Rect::new(enemy.x - 20.0, enemy.y - 20.0, 40.0, 40.0);
             let enemy_color = Color::from_rgb(255, 0, 0);
@@ -225,7 +247,7 @@ impl EventHandler for MainState {
 
         if matches!(self.state, GameState::GameOver) {
             let game_over_text = Text::new(TextFragment {
-                text: "Game Over - \nPress R to Restart".to_string(),
+                text: "Game Over - Press R to Restart".to_string(),
                 color: Some(Color::from_rgb(255, 255, 255)),
                 scale: Some(graphics::PxScale::from(40.0)),
                 ..Default::default()
@@ -248,10 +270,15 @@ impl EventHandler for MainState {
             match keycode {
                 KeyCode::Space => {
                     if matches!(self.state, GameState::Playing) {
-                        self.bullets.push(Bullet {
-                            x: self.player_x,
-                            y: SCREEN_HEIGHT - 50.0,
-                        });
+                        // Schüsse basierend auf der Anzahl der verfügbaren Schüsse
+                        let offset = self.base_width / (self.available_shots + 1) as f32;
+                        for i in 0..self.available_shots {
+                            let bullet_x = self.player_x - self.base_width / 2.0 + offset * (i as f32 + 1.0);
+                            self.bullets.push(Bullet {
+                                x: bullet_x,
+                                y: SCREEN_HEIGHT - 50.0,
+                            });
+                        }
                         let _ = self.shoot_sound.play(ctx);
                     }
                 }
