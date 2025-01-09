@@ -1,8 +1,8 @@
-// learning RUST - 
+// learning RUST -
 
 use ggez::audio::{SoundSource, Source};
 use ggez::event::{self, EventHandler};
-use ggez::graphics::{self, Color, Image, Rect, Text, TextFragment, Drawable};
+use ggez::graphics::{self, Color, Drawable, Image, Rect, Text, TextFragment};
 use ggez::input::keyboard::KeyCode;
 use ggez::{Context, ContextBuilder, GameResult};
 use std::sync::{Arc, Mutex};
@@ -36,13 +36,13 @@ enum GameState {
 
 struct MainState {
     player_x: f32,
-    base_width: f32,        
+    base_width: f32,
     bullets: Vec<Bullet>,
     enemies: Vec<Enemy>,
     enemy_direction: f32,
     enemy_speed: f32,
     wave_number: u32,
-    available_shots: u32,   
+    available_shots: u32,
     state: GameState,
     scroll_text: Text,
     text_x: Arc<Mutex<f32>>,
@@ -69,28 +69,26 @@ impl MainState {
 
         // Hintergrund-Thread für die Laufschrift
         let text_x_clone = Arc::clone(&text_x);
-        thread::spawn(move || {
-            loop {
-                {
-                    let mut position = text_x_clone.lock().unwrap();
-                    *position -= TEXT_SCROLL_SPEED * 0.016;
-                    if *position < -500.0 {
-                        *position = SCREEN_WIDTH;
-                    }
+        thread::spawn(move || loop {
+            {
+                let mut position = text_x_clone.lock().unwrap();
+                *position -= TEXT_SCROLL_SPEED * 0.016;
+                if *position < -500.0 {
+                    *position = SCREEN_WIDTH;
                 }
-                thread::sleep(Duration::from_millis(16));
             }
+            thread::sleep(Duration::from_millis(16));
         });
 
         Ok(MainState {
             player_x: SCREEN_WIDTH / 2.0,
-            base_width: 50.0, 
+            base_width: 50.0,
             bullets: Vec::new(),
             enemies: MainState::generate_enemies(1),
             enemy_direction: 1.0,
             enemy_speed: INITIAL_ENEMY_SPEED,
             wave_number: 1,
-            available_shots: 1, 
+            available_shots: 1,
             state: GameState::Playing,
             scroll_text,
             text_x,
@@ -103,13 +101,13 @@ impl MainState {
 
     fn reset(&mut self) {
         self.player_x = SCREEN_WIDTH / 2.0;
-        self.base_width = 50.0; 
+        self.base_width = 50.0;
         self.bullets.clear();
         self.enemies = MainState::generate_enemies(1);
         self.enemy_direction = 1.0;
         self.enemy_speed = INITIAL_ENEMY_SPEED;
         self.wave_number = 1;
-        self.available_shots = 1; 
+        self.available_shots = 1;
         self.score = 0;
 
         let mut text_x = self.text_x.lock().unwrap();
@@ -148,7 +146,9 @@ impl EventHandler for MainState {
             self.player_x += PLAYER_SPEED * dt;
         }
 
-        self.player_x = self.player_x.clamp(self.base_width / 2.0, SCREEN_WIDTH - self.base_width / 2.0);
+        self.player_x = self
+            .player_x
+            .clamp(self.base_width / 2.0, SCREEN_WIDTH - self.base_width / 2.0);
 
         for bullet in &mut self.bullets {
             bullet.y -= BULLET_SPEED * dt;
@@ -186,12 +186,16 @@ impl EventHandler for MainState {
         if self.enemies.is_empty() {
             self.wave_number += 1;
             self.enemy_speed += 20.0;
-            self.available_shots += 1; 
-            self.base_width += 20.0; 
+            self.available_shots += 1;
+            self.base_width += 20.0;
             self.enemies = MainState::generate_enemies(self.wave_number);
         }
 
-        if self.enemies.iter().any(|enemy| enemy.y > SCREEN_HEIGHT - DEFENDER_LINE) {
+        if self
+            .enemies
+            .iter()
+            .any(|enemy| enemy.y > SCREEN_HEIGHT - DEFENDER_LINE)
+        {
             self.state = GameState::GameOver;
         }
 
@@ -256,7 +260,10 @@ impl EventHandler for MainState {
                 scale: Some(graphics::PxScale::from(40.0)),
                 ..Default::default()
             });
-            canvas.draw(&game_over_text, graphics::DrawParam::default().dest([300.0, 350.0]));
+            canvas.draw(
+                &game_over_text,
+                graphics::DrawParam::default().dest([300.0, 350.0]),
+            );
         }
 
         canvas.finish(ctx)?;
@@ -274,10 +281,10 @@ impl EventHandler for MainState {
             match keycode {
                 KeyCode::Space => {
                     if matches!(self.state, GameState::Playing) {
-                      
                         let offset = self.base_width / (self.available_shots + 1) as f32;
                         for i in 0..self.available_shots {
-                            let bullet_x = self.player_x - self.base_width / 2.0 + offset * (i as f32 + 1.0);
+                            let bullet_x =
+                                self.player_x - self.base_width / 2.0 + offset * (i as f32 + 1.0);
                             self.bullets.push(Bullet {
                                 x: bullet_x,
                                 y: SCREEN_HEIGHT - 50.0,
