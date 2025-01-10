@@ -4,7 +4,6 @@ use ggez::graphics::{self, Color, Drawable, Image, Text, TextFragment};
 use ggez::input::keyboard::KeyCode;
 use ggez::{Context, ContextBuilder, GameResult};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use std::path::Path;
 use ggez::filesystem;
 
