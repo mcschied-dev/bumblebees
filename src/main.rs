@@ -5,6 +5,8 @@ use ggez::input::keyboard::KeyCode;
 use ggez::{Context, ContextBuilder, GameResult};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::path::Path;
+use ggez::filesystem;
 
 // Konstanten
 const SCREEN_WIDTH: f32 = 1024.0;
@@ -316,11 +318,19 @@ impl EventHandler for MainState {
 }
 
 fn main() -> GameResult {
+    // Ressourcenpfad ermitteln basierend auf dem Projektstammverzeichnis
+    let resources_dir = format!("{}/resources", env!("CARGO_MANIFEST_DIR"));
+
+    // Kontext erstellen
     let (mut ctx, event_loop) = ContextBuilder::new("space_invaders", "Author")
-        .window_setup(ggez::conf::WindowSetup::default().title("Hummel Invaders"))
+        .window_setup(ggez::conf::WindowSetup::default().title("Space Invaders"))
         .window_mode(ggez::conf::WindowMode::default().dimensions(SCREEN_WIDTH, SCREEN_HEIGHT))
-        .add_resource_path("./resources")
         .build()?;
+
+    // Ressourcenverzeichnis mounten
+    println!("Mounting resources from: {}", resources_dir);
+    filesystem::mount(&mut ctx, Path::new(&resources_dir), true);
+
     let state = MainState::new(&mut ctx)?;
     event::run(ctx, event_loop, state)
 }
