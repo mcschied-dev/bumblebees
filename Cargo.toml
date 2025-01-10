@@ -3,6 +3,11 @@ name = "ten"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.bundle]
+name = "Hummel"
+identifier = "com.mcschied.hummel"
+icon = ["assets/icon.icns"]
+
 [dependencies]
 ggez = "0.9.3"
 rand = "0.8.5"
