@@ -2,12 +2,12 @@
 
 use ggez::audio::{SoundSource, Source};
 use ggez::event::{self, EventHandler};
+use ggez::filesystem;
 use ggez::graphics::{self, Color, Drawable, Image, Text, TextFragment};
 use ggez::input::keyboard::KeyCode;
 use ggez::{Context, ContextBuilder, GameResult};
-use std::sync::{Arc, Mutex};
 use std::path::Path;
-use ggez::filesystem;
+use std::sync::{Arc, Mutex};
 
 // Konstanten
 const SCREEN_WIDTH: f32 = 1024.0;
@@ -117,7 +117,9 @@ impl MainState {
         self.state = GameState::Playing;
 
         self.background_music.stop(ctx).ok();
-        self.background_music.play(ctx).expect("Fehler beim Abspielen der Musik");
+        self.background_music
+            .play(ctx)
+            .expect("Fehler beim Abspielen der Musik");
     }
 
     fn generate_enemies(wave: u32) -> Vec<Enemy> {
@@ -266,7 +268,8 @@ impl EventHandler for MainState {
         }
 
         for enemy in &self.enemies {
-            let enemy_position = graphics::DrawParam::default().dest([enemy.x - 20.0, enemy.y - 20.0]);
+            let enemy_position =
+                graphics::DrawParam::default().dest([enemy.x - 20.0, enemy.y - 20.0]);
             canvas.draw(&self.enemy_image, enemy_position);
         }
 
