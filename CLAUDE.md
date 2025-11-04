@@ -4,15 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **BumbleBees**, a Space Invaders clone game built in Rust using the ggez game engine. The game features:
+This is **BumbleBees**, a Space Invaders clone game built in Rust using the macroquad game engine. The game features:
 - Progressive difficulty with wave-based gameplay
 - Parallax scrolling background
 - Comprehensive highscore tracking system with persistent storage
 - Interactive menu with player name input
 - Sound effects and background music
 - Comprehensive logging system for debugging
+- **Full WASM/WebAssembly support** for browser deployment
 
-The project follows a clean modular architecture with clear separation of concerns between entities, systems, game state, highscore management, logging, and rendering.
+The project follows a clean modular architecture with clear separation of concerns between entities, systems, game state, highscore management, and rendering. Platform-specific code uses conditional compilation for desktop (file I/O) vs. web (LocalStorage).
 
 ## Build and Run Commands
 
@@ -69,6 +70,30 @@ grep -i "error\|warn" debug.log
 # View game startup sequence
 head -50 debug.log
 ```
+
+### WASM/Web Build
+```bash
+# Quick build (automated script)
+./build-wasm.sh
+
+# Manual WASM build
+rustup target add wasm32-unknown-unknown
+cargo install wasm-bindgen-cli --version 0.2.105
+cargo build --target wasm32-unknown-unknown --lib --release
+wasm-bindgen --target web --out-dir pkg target/wasm32-unknown-unknown/release/ten.wasm
+
+# Test locally
+python3 -m http.server 8000
+# Open http://localhost:8000
+
+# Check WASM clippy warnings
+cargo clippy --target wasm32-unknown-unknown --lib
+```
+
+**WASM Status**: ✅ Fully compatible
+- Output: `pkg/` directory with JavaScript bindings (~6.5KB)
+- See `WASM-README.md` for complete documentation
+- Uses LocalStorage for highscores in browser
 
 ## Architecture
 

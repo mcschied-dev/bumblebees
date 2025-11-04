@@ -1,6 +1,17 @@
+# Rust build artifacts
 /target
+
+# WASM build artifacts
 pkg/
+*.wasm
+wasm-pack.log
+
+# macOS
 .DS_Store
+
+# Game runtime files
 debug.log
 highscores.txt
+
+# Test artifacts
 test_*.txt
