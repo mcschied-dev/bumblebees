@@ -1,11 +1,39 @@
+//! Wave generation system.
+
 use crate::entities::Enemy;
 
-/// Generate enemies for a given wave number
+/// Generate enemies for a given wave number.
+///
+/// Each wave generates a grid of enemies with progressively more rows.
+/// The formula is: rows = 2 + wave_number, with a constant 10 columns.
+///
+/// # Arguments
+///
+/// * `wave` - The wave number (1-based)
+///
+/// # Returns
+///
+/// A vector of enemies positioned in a grid formation
+///
+/// # Examples
+///
+/// ```
+/// # use ten::systems::wave::generate_wave;
+/// let wave_1 = generate_wave(1);  // 30 enemies (3 rows x 10 columns)
+/// let wave_2 = generate_wave(2);  // 40 enemies (4 rows x 10 columns)
+/// ```
+#[must_use]
 pub fn generate_wave(wave: u32) -> Vec<Enemy> {
-    let mut enemies = Vec::new();
     let rows = 2 + wave as usize;
+    let columns = 10;
+    let enemy_count = rows * columns;
 
-    for i in 0..10 {
+    log::info!("Generating wave {} with {} enemies ({} rows x {} columns)",
+               wave, enemy_count, rows, columns);
+
+    let mut enemies = Vec::with_capacity(enemy_count);
+
+    for i in 0..columns {
         for j in 0..rows {
             enemies.push(Enemy::new(
                 50.0 + i as f32 * 60.0,

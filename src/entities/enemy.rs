@@ -1,28 +1,60 @@
+//! Enemy entity implementation.
+
 use crate::constants::{DEFENDER_LINE, SCREEN_HEIGHT, SCREEN_WIDTH};
 
+/// Represents an enemy in the game.
+///
+/// Enemies move horizontally across the screen, drop down when they
+/// hit the edge, and trigger game over if they reach the defender line.
 #[derive(Debug, Clone)]
 pub struct Enemy {
+    /// X position in pixels
     pub x: f32,
+    /// Y position in pixels
     pub y: f32,
 }
 
 impl Enemy {
+    /// Create a new enemy at the specified position.
+    ///
+    /// # Arguments
+    ///
+    /// * `x` - Initial X coordinate
+    /// * `y` - Initial Y coordinate
+    #[must_use]
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 
+    /// Update enemy position based on direction, speed, and delta time.
+    ///
+    /// # Arguments
+    ///
+    /// * `direction` - Movement direction (1.0 = right, -1.0 = left)
+    /// * `speed` - Movement speed in pixels per second
+    /// * `dt` - Delta time in seconds
     pub fn update(&mut self, direction: f32, speed: f32, dt: f32) {
         self.x += direction * speed * dt;
     }
 
+    /// Move enemy downward by a specified amount.
+    ///
+    /// # Arguments
+    ///
+    /// * `amount` - Distance to move down in pixels
     pub fn move_down(&mut self, amount: f32) {
         self.y += amount;
+        log::debug!("Enemy moved down to y={}", self.y);
     }
 
+    /// Check if enemy has reached the screen edge.
+    #[must_use]
     pub fn has_reached_edge(&self) -> bool {
         self.x < 20.0 || self.x > SCREEN_WIDTH - 20.0
     }
 
+    /// Check if enemy has breached the defender line (game over condition).
+    #[must_use]
     pub fn has_breached_defender_line(&self) -> bool {
         self.y > SCREEN_HEIGHT - DEFENDER_LINE
     }

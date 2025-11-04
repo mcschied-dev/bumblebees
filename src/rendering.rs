@@ -1,3 +1,8 @@
+//! Game rendering module.
+//!
+//! Handles all drawing operations for different game states:
+//! menu, playing, and game over screens.
+
 use ggez::graphics::{self, Canvas, Color, DrawParam, Mesh, PxScale, Rect, Text, TextFragment};
 use ggez::{Context, GameResult};
 
@@ -5,6 +10,11 @@ use crate::constants::SCREEN_WIDTH;
 use crate::entities::{Bullet, Enemy};
 use crate::game_state::{GameState, MainState};
 
+/// Main rendering function that delegates to state-specific renderers.
+///
+/// # Errors
+///
+/// Returns an error if any rendering operation fails.
 pub fn draw_game(state: &MainState, ctx: &mut Context) -> GameResult {
     let mut canvas = Canvas::from_frame(ctx, Color::BLACK);
 

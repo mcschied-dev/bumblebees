@@ -1,14 +1,37 @@
+//! Collision detection system.
+
 use crate::constants::COLLISION_RADIUS;
 use crate::entities::{Bullet, Enemy};
 
-/// Check if a bullet collides with an enemy
+/// Check if a bullet collides with an enemy using circle collision.
+///
+/// # Arguments
+///
+/// * `bullet` - The bullet to check
+/// * `enemy` - The enemy to check
+///
+/// # Returns
+///
+/// `true` if the distance between bullet and enemy is less than the collision radius
+#[must_use]
 pub fn check_collision(bullet: &Bullet, enemy: &Enemy) -> bool {
     let dx = enemy.x - bullet.x;
     let dy = enemy.y - bullet.y;
     (dx * dx + dy * dy).sqrt() < COLLISION_RADIUS
 }
 
-/// Remove enemies that have been hit by bullets and return the count
+/// Process collisions between bullets and enemies.
+///
+/// Removes all enemies hit by bullets and returns the count of destroyed enemies.
+///
+/// # Arguments
+///
+/// * `enemies` - Mutable vector of enemies to check
+/// * `bullets` - Slice of bullets to check against
+///
+/// # Returns
+///
+/// The number of enemies destroyed
 pub fn process_collisions(enemies: &mut Vec<Enemy>, bullets: &[Bullet]) -> usize {
     let initial_count = enemies.len();
 
@@ -16,7 +39,12 @@ pub fn process_collisions(enemies: &mut Vec<Enemy>, bullets: &[Bullet]) -> usize
         !bullets.iter().any(|bullet| check_collision(bullet, enemy))
     });
 
-    initial_count - enemies.len()
+    let destroyed = initial_count - enemies.len();
+    if destroyed > 0 {
+        log::debug!("Destroyed {} enemies in collision check", destroyed);
+    }
+
+    destroyed
 }
 
 #[cfg(test)]
