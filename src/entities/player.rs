@@ -1,14 +1,26 @@
-use crate::constants::{PLAYER_SPEED, SCREEN_HEIGHT, SCREEN_WIDTH};
+//! Player entity implementation.
+
+use crate::constants::{BASE_WIDTH_INCREASE, PLAYER_SPEED, SCREEN_HEIGHT, SCREEN_WIDTH};
 use crate::entities::Bullet;
 
+/// Represents the player character.
+///
+/// The player can move horizontally, shoot bullets, and is upgraded
+/// with more firepower after completing each wave.
 pub struct Player {
+    /// X position in pixels
     pub x: f32,
+    /// Width of the player's base in pixels
     pub base_width: f32,
+    /// Number of bullets fired per shot
     pub available_shots: u32,
 }
 
 impl Player {
+    /// Create a new player at the default starting position.
+    #[must_use]
     pub fn new() -> Self {
+        log::debug!("Creating new player");
         Self {
             x: SCREEN_WIDTH / 2.0,
             base_width: 50.0,
@@ -16,22 +28,39 @@ impl Player {
         }
     }
 
+    /// Move player left based on delta time.
+    ///
+    /// # Arguments
+    ///
+    /// * `dt` - Delta time in seconds
     pub fn move_left(&mut self, dt: f32) {
         self.x -= PLAYER_SPEED * dt;
         self.clamp_position();
     }
 
+    /// Move player right based on delta time.
+    ///
+    /// # Arguments
+    ///
+    /// * `dt` - Delta time in seconds
     pub fn move_right(&mut self, dt: f32) {
         self.x += PLAYER_SPEED * dt;
         self.clamp_position();
     }
 
+    /// Clamp player position to screen boundaries.
     pub fn clamp_position(&mut self) {
         self.x = self
             .x
             .clamp(self.base_width / 2.0, SCREEN_WIDTH - self.base_width / 2.0);
     }
 
+    /// Fire bullets based on current upgrade level.
+    ///
+    /// # Returns
+    ///
+    /// A vector of bullets evenly spaced across the player's base width.
+    #[must_use]
     pub fn shoot(&self) -> Vec<Bullet> {
         let mut bullets = Vec::new();
         let offset = self.base_width / (self.available_shots + 1) as f32;
@@ -41,25 +70,38 @@ impl Player {
             bullets.push(Bullet::new(bullet_x, SCREEN_HEIGHT - 50.0));
         }
 
+        log::debug!("Player fired {} bullets", bullets.len());
         bullets
     }
 
+    /// Upgrade player with more shots and wider base.
     pub fn upgrade(&mut self) {
         self.available_shots += 1;
-        self.base_width += crate::constants::BASE_WIDTH_INCREASE;
+        self.base_width += BASE_WIDTH_INCREASE;
+        log::info!(
+            "Player upgraded: {} shots, width {}",
+            self.available_shots,
+            self.base_width
+        );
     }
 
+    /// Reset player to initial state.
     pub fn reset(&mut self) {
+        log::debug!("Resetting player to initial state");
         self.x = SCREEN_WIDTH / 2.0;
         self.base_width = 50.0;
         self.available_shots = 1;
     }
 
-    pub fn y(&self) -> f32 {
+    /// Get player Y position.
+    #[must_use]
+    pub const fn y(&self) -> f32 {
         SCREEN_HEIGHT - 50.0
     }
 
-    pub fn height(&self) -> f32 {
+    /// Get player height.
+    #[must_use]
+    pub const fn height(&self) -> f32 {
         20.0
     }
 }

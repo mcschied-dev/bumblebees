@@ -13,6 +13,9 @@ resources = ["resources"]
 ggez = "0.9.3"
 rand = "0.9.0"
 winit = { version = "0.30.9", features = ["serde"] }
+log = "0.4"
+fern = "0.6"
+chrono = "0.4"
 
 
 

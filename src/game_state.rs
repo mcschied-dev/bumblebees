@@ -1,3 +1,8 @@
+//! Main game state and event handling.
+//!
+//! This module contains the core game state structure and implements
+//! the ggez EventHandler trait for game loop management.
+
 use ggez::audio::{SoundSource, Source};
 use ggez::event::EventHandler;
 use ggez::graphics::{Color, Image, Text, TextFragment};
@@ -10,13 +15,18 @@ use crate::entities::{Bullet, Enemy, Player};
 use crate::highscore::HighscoreManager;
 use crate::systems::{generate_wave, process_collisions};
 
+/// Represents the current state of the game.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameState {
+    /// Showing the main menu with highscores and name input
     Menu,
+    /// Active gameplay
     Playing,
+    /// Game over screen showing final score
     GameOver,
 }
 
+/// Main game state containing all entities, resources, and game logic.
 pub struct MainState {
     pub player: Player,
     pub bullets: Vec<Bullet>,
@@ -47,15 +57,30 @@ pub struct MainState {
 }
 
 impl MainState {
+    /// Create a new game state and load all resources.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any resources fail to load.
     pub fn new(ctx: &mut Context) -> GameResult<Self> {
+        log::info!("Loading game resources");
+
         let shoot_sound = Source::new(ctx, "/shoot.wav")?;
+        log::debug!("Loaded shoot sound");
+
         let hit_sound = Source::new(ctx, "/hit.wav")?;
+        log::debug!("Loaded hit sound");
+
         let background = Image::from_path(ctx, "/background.png")?;
+        log::debug!("Loaded background image: {}x{}", background.width(), background.height());
+
         let enemy_image = Image::from_path(ctx, "/enemy.png")?;
+        log::debug!("Loaded enemy image");
 
         let mut background_music = Source::new(ctx, "/background_music.wav")?;
         background_music.set_repeat(true);
         background_music.play(ctx)?;
+        log::info!("Started background music");
 
         let scroll_text = Text::new(TextFragment {
             text: "Happy New Year".to_string(),
@@ -66,6 +91,8 @@ impl MainState {
 
         let text_x = Arc::new(Mutex::new(SCREEN_WIDTH));
         let scroll_direction = Arc::new(Mutex::new(-1.0));
+
+        log::info!("Game state created successfully");
 
         Ok(Self {
             player: Player::new(),
@@ -91,7 +118,9 @@ impl MainState {
         })
     }
 
+    /// Reset game to menu state.
     pub fn reset(&mut self, ctx: &mut Context) {
+        log::info!("Resetting game to menu");
         self.player.reset();
         self.bullets.clear();
         self.enemies = generate_wave(1);
@@ -113,8 +142,12 @@ impl MainState {
             .expect("Failed to play background music");
     }
 
+    /// Start the game from menu state.
+    ///
+    /// Only starts if player name is not empty.
     pub fn start_game(&mut self) {
         if !self.player_name.is_empty() {
+            log::info!("Starting game for player: {}", self.player_name);
             self.state = GameState::Playing;
             self.score = 0;
             self.wave_number = 1;
@@ -124,12 +157,16 @@ impl MainState {
             self.enemy_direction = 1.0;
             self.enemy_speed = INITIAL_ENEMY_SPEED;
             self.moved_down = false;
+        } else {
+            log::warn!("Cannot start game without player name");
         }
     }
 
+    /// Save highscore and return to menu.
     pub fn save_and_return_to_menu(&mut self, ctx: &mut Context) {
         // Save highscore
         if !self.player_name.is_empty() && self.score > 0 {
+            log::info!("Saving highscore: {} - {}", self.player_name, self.score);
             self.highscore_manager
                 .save_highscore(&self.player_name, self.score);
         }
@@ -138,6 +175,7 @@ impl MainState {
         self.reset(ctx);
     }
 
+    /// Fire bullets from player position.
     pub fn shoot(&mut self, ctx: &mut Context) {
         if matches!(self.state, GameState::Playing) {
             let new_bullets = self.player.shoot();
@@ -171,10 +209,11 @@ impl MainState {
                 enemy.move_down(40.0);
 
                 if enemy.has_breached_defender_line() {
-                    println!("Enemy breached the defender line: y = {}", enemy.y);
+                    log::warn!("Enemy breached defender line at y={}, game over!", enemy.y);
                     self.state = GameState::GameOver;
                     // Save highscore immediately when game over
                     if !self.player_name.is_empty() && self.score > 0 {
+                        log::info!("Game over! Final score: {}", self.score);
                         self.highscore_manager
                             .save_highscore(&self.player_name, self.score);
                     }
@@ -197,12 +236,19 @@ impl MainState {
         }
     }
 
+    /// Check if all enemies are destroyed and start next wave.
     pub fn check_wave_complete(&mut self) {
         if self.enemies.is_empty() {
             self.wave_number += 1;
             self.enemy_speed += SPEED_INCREASE_PER_WAVE;
             self.player.upgrade();
             self.enemies = generate_wave(self.wave_number);
+            log::info!(
+                "Wave {} complete! Starting wave {} with speed {}",
+                self.wave_number - 1,
+                self.wave_number,
+                self.enemy_speed
+            );
         }
     }
 
