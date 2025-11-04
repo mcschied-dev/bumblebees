@@ -504,7 +504,12 @@ impl Game {
 
     fn draw_score(&self) {
         let score_text = format!("Score: {}", self.score);
-        draw_text(&score_text, SCREEN_WIDTH - 180.0, 40.0, 30.0, WHITE);
+
+        // Draw shadow for bold effect
+        draw_text(&score_text, SCREEN_WIDTH - 178.0, 42.0, 32.0, Color::from_rgba(0, 0, 0, 128));
+
+        // Draw main text in red with larger font for bold effect
+        draw_text(&score_text, SCREEN_WIDTH - 180.0, 40.0, 32.0, RED);
     }
 
     fn handle_input(&mut self) {
