@@ -3,7 +3,6 @@
 
 use macroquad::prelude::*;
 use macroquad::audio::{load_sound, play_sound_once, play_sound, stop_sound, PlaySoundParams, Sound};
-use macroquad::texture::DrawTextureParams;
 use std::sync::{Arc, Mutex};
 
 mod constants;
@@ -441,20 +440,10 @@ impl Game {
         // Calculate how many background instances we need to cover the screen
         let instances_needed = ((screen_width / bg_width).ceil() as i32) + 2;
 
-        // Draw background layer (slower, more transparent, horizontally mirrored)
+        // Draw background layer (slower, more transparent, normal orientation)
         for i in -1..instances_needed {
             let x_pos = self.background_scroll_x2 + (i as f32 * bg_width);
-            // Use draw_texture_ex for horizontal mirroring
-            draw_texture_ex(
-                &self.background2,
-                x_pos,
-                0.0,
-                Color::from_rgba(255, 255, 255, 180), // 70% opacity
-                DrawTextureParams {
-                    flip_x: true, // Mirror horizontally
-                    ..Default::default()
-                },
-            );
+            draw_texture(&self.background2, x_pos, 0.0, Color::from_rgba(255, 255, 255, 180));
         }
 
         // Draw foreground layer (faster, fully opaque, normal orientation)
