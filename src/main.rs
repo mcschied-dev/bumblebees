@@ -15,19 +15,32 @@ use entities::{Bullet, Enemy, Player};
 use highscore::HighscoreManager;
 use systems::{generate_wave, process_collisions};
 
-/// Resolve resource path for both development and bundled environments
-fn resolve_resource_path(resource_path: &str) -> String {
-    // In development, resources are relative to the executable
-    // In macOS bundle, resources are in Contents/Resources/
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(bundle_path) = exe_path.parent() {
-            // Check if we're in a macOS bundle (Contents/MacOS/)
-            if bundle_path.ends_with("MacOS") {
-                if let Some(contents_path) = bundle_path.parent() {
-                    if let Some(resources_path) = contents_path.parent() {
-                        let bundle_resources = resources_path.join("Resources").join(resource_path);
-                        if bundle_resources.exists() {
-                            return bundle_resources.to_string_lossy().to_string();
+/// Load texture with fallback paths for bundle compatibility
+async fn load_texture_fallback(path: &str) -> Result<Texture2D, macroquad::Error> {
+    // Try the path as-is first
+    match load_texture(path).await {
+        Ok(texture) => return Ok(texture),
+        Err(_) => {
+            // If we're in a bundle, try relative to executable
+            if let Ok(exe_path) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_path.parent() {
+                    // Try relative to executable directory
+                    let exe_relative = exe_dir.join(path);
+                    if exe_relative.exists() {
+                        if let Some(path_str) = exe_relative.to_str() {
+                            return load_texture(path_str).await;
+                        }
+                    }
+
+                    // Try in bundle Resources directory
+                    if exe_dir.ends_with("MacOS") {
+                        if let Some(contents) = exe_dir.parent() {
+                            let resources_path = contents.join("Resources").join(path);
+                            if resources_path.exists() {
+                                if let Some(path_str) = resources_path.to_str() {
+                                    return load_texture(path_str).await;
+                                }
+                            }
                         }
                     }
                 }
@@ -35,8 +48,45 @@ fn resolve_resource_path(resource_path: &str) -> String {
         }
     }
 
-    // Fallback to relative path (development mode)
-    resource_path.to_string()
+    // Final fallback - return error
+    load_texture(path).await
+}
+
+/// Load sound with fallback paths for bundle compatibility
+async fn load_sound_fallback(path: &str) -> Result<Sound, macroquad::Error> {
+    // Try the path as-is first
+    match load_sound(path).await {
+        Ok(sound) => return Ok(sound),
+        Err(_) => {
+            // If we're in a bundle, try relative to executable
+            if let Ok(exe_path) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_path.parent() {
+                    // Try relative to executable directory
+                    let exe_relative = exe_dir.join(path);
+                    if exe_relative.exists() {
+                        if let Some(path_str) = exe_relative.to_str() {
+                            return load_sound(path_str).await;
+                        }
+                    }
+
+                    // Try in bundle Resources directory
+                    if exe_dir.ends_with("MacOS") {
+                        if let Some(contents) = exe_dir.parent() {
+                            let resources_path = contents.join("Resources").join(path);
+                            if resources_path.exists() {
+                                if let Some(path_str) = resources_path.to_str() {
+                                    return load_sound(path_str).await;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Final fallback - return error
+    load_sound(path).await
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,19 +131,19 @@ impl Game {
     async fn new() -> Self {
         log::info!("Loading game resources");
 
-        let background = load_texture(&resolve_resource_path("resources/background.png"))
+        let background = load_texture_fallback("resources/background.png")
             .await
             .unwrap_or_else(|_| Texture2D::from_rgba8(1, 1, &[0, 0, 0, 255]));
 
-        let enemy_image = load_texture(&resolve_resource_path("resources/enemy.png"))
+        let enemy_image = load_texture_fallback("resources/enemy.png")
             .await
             .unwrap_or_else(|_| Texture2D::from_rgba8(1, 1, &[255, 255, 255, 255]));
 
-        let shoot_sound = load_sound(&resolve_resource_path("resources/shoot.wav")).await.ok();
+        let shoot_sound = load_sound_fallback("resources/shoot.wav").await.ok();
 
-        let hit_sound = load_sound(&resolve_resource_path("resources/hit.wav")).await.ok();
+        let hit_sound = load_sound_fallback("resources/hit.wav").await.ok();
 
-        let background_music = load_sound(&resolve_resource_path("resources/background_music.wav")).await.ok();
+        let background_music = load_sound_fallback("resources/background_music.wav").await.ok();
 
         log::info!("Game state created successfully");
 

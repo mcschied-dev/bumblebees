@@ -10,7 +10,10 @@ crate-type = ["cdylib", "rlib"]
 name = "BumbleBees"
 identifier = "com.mcschied.bumblebees"
 icon = ["assets/icon.icns"]
-resources = ["resources"]   
+resources = ["resources"]
+copy = [
+    { from = "resources", to = "MacOS/resources" }
+]
 
 [dependencies]
 macroquad = { version = "0.4", features = ["audio"] }
