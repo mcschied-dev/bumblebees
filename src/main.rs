@@ -976,7 +976,7 @@ pub fn main() {
             game.update(dt);
             game.draw();
 
-            next_frame().await
+            next_frame().await;
         }
     });
 }
