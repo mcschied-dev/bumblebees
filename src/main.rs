@@ -118,7 +118,25 @@ enum GameState {
     GameOver,
 }
 
-/// Represents a single parallax background layer with infinite scrolling
+/// Represents a single parallax background layer with infinite scrolling.
+///
+/// Each layer maintains two texture positions to create seamless scrolling.
+/// When one texture scrolls off-screen, it's repositioned behind the other
+/// to create an infinite loop effect.
+///
+/// # Fields
+///
+/// - `speed`: Scroll speed in pixels/second (negative = left, positive = right, 0 = static)
+/// - `parts`: Two X positions for the dual-texture infinite scroll technique
+/// - `layer_type`: Identifies which texture to use for this layer
+///
+/// # Examples
+///
+/// ```
+/// # use ten::*; // This would need proper module structure
+/// // Create a slow-moving cloud layer scrolling left at 20 px/s
+/// // let clouds = BackgroundLayer::new(-20.0, 1024.0, BackgroundLayerType::Clouds);
+/// ```
 #[derive(Debug, Clone)]
 struct BackgroundLayer {
     /// Scroll speed in pixels per second (negative = left, positive = right)
@@ -129,6 +147,25 @@ struct BackgroundLayer {
     layer_type: BackgroundLayerType,
 }
 
+/// Enum representing the different parallax background layers.
+///
+/// Layers are numbered sequentially from 01-08 in the resources directory
+/// using the naming convention: `bg_layer_01.png` through `bg_layer_08.png`,
+/// plus `bg_main.png` for the main background field.
+///
+/// # Layer Mapping
+///
+/// - `Sky` -> `bg_layer_01.png` (static sky, no scrolling)
+/// - `Clouds` -> `bg_layer_02.png` (slow-moving clouds)
+/// - `FarField` -> `bg_layer_03.png` (medium-speed far field)
+/// - `Layer4` -> `bg_layer_04.png` (medium-slow layer)
+/// - `Layer5` -> `bg_layer_05.png` (medium-fast layer)
+/// - `Layer6` -> `bg_layer_06.png` (very fast layer)
+/// - `Layer7` -> `bg_layer_07.png` (fastest layer)
+/// - `Layer8` -> `bg_layer_08.png` (very slow foreground layer)
+/// - `NearField` -> `bg_main.png` (fast near-field main background)
+///
+/// Layers are rendered from back to front to create the parallax effect.
 #[derive(Debug, Clone, Copy)]
 enum BackgroundLayerType {
     Sky,
@@ -143,6 +180,18 @@ enum BackgroundLayerType {
 }
 
 impl BackgroundLayer {
+    /// Create a new background layer.
+    ///
+    /// # Arguments
+    ///
+    /// * `speed` - Scroll speed in pixels per second (negative scrolls left, positive scrolls right, 0 is static)
+    /// * `texture_width` - Width of the texture in pixels
+    /// * `layer_type` - Type of layer for texture selection
+    ///
+    /// # Returns
+    ///
+    /// A new `BackgroundLayer` with two texture positions for seamless scrolling
+    #[must_use]
     fn new(speed: f32, texture_width: f32, layer_type: BackgroundLayerType) -> Self {
         Self {
             speed,
@@ -151,6 +200,16 @@ impl BackgroundLayer {
         }
     }
 
+    /// Update the layer's scroll position.
+    ///
+    /// Moves both texture parts based on speed and delta time. When a texture
+    /// scrolls completely off-screen, it's repositioned behind the other for
+    /// seamless infinite scrolling.
+    ///
+    /// # Arguments
+    ///
+    /// * `dt` - Delta time in seconds since last update
+    /// * `texture_width` - Width of the texture (for wraparound calculation)
     fn update(&mut self, dt: f32, texture_width: f32) {
         // Move both parts
         self.parts[0] += self.speed * dt;
@@ -164,6 +223,11 @@ impl BackgroundLayer {
         }
     }
 
+    /// Reset the layer to its initial position.
+    ///
+    /// # Arguments
+    ///
+    /// * `texture_width` - Width of the texture in pixels
     fn reset(&mut self, texture_width: f32) {
         self.parts = [0.0, texture_width];
     }
@@ -218,6 +282,27 @@ struct Game {
 impl Game {
     async fn new() -> Self {
         log::info!("Loading game resources");
+
+        // ========================================================================
+        // RESOURCE NAMING CONVENTION
+        // ========================================================================
+        // All resources follow game development naming conventions:
+        //
+        // - Category prefixes: bg_ (backgrounds), sprite_ (sprites), vfx_ (effects),
+        //   ui_ (interface), sfx_ (sound effects), music_ (music)
+        // - Snake_case with zero-padded sequential numbering (01, 02, 03...)
+        // - Examples:
+        //     bg_layer_01.png    (parallax layer 1 - sky)
+        //     bg_layer_08.png    (parallax layer 8 - foreground)
+        //     sprite_enemy.png   (enemy sprite)
+        //     vfx_explosion_01.png (first explosion frame)
+        //     ui_logo.png        (main logo)
+        //     sfx_shoot.wav      (shooting sound)
+        //     music_background.wav (background music)
+        //
+        // This convention makes asset management clearer and follows industry
+        // standards for game development asset organization.
+        // ========================================================================
 
         let sky = load_texture_fallback("resources/bg_layer_01.png")
             .await
@@ -288,7 +373,8 @@ impl Game {
             .await
             .ok();
 
-        // Initialize background layers for parallax scrolling (8 layers total)
+        // Initialize background layers for parallax scrolling (9 layers: 8 numbered + main bg)
+        // Layers are ordered from back to front for proper rendering depth
         let background_layers = vec![
             BackgroundLayer::new(0.0, sky.width(), BackgroundLayerType::Sky), // Static sky (layer 1)
             BackgroundLayer::new(-10.0, layer_8.width(), BackgroundLayerType::Layer8), // Very slow layer 8
@@ -1222,5 +1308,106 @@ mod tests {
 
         assert_eq!(enemies[3].x, 302.0); // Next column
         assert_eq!(enemies[3].y, 50.0); // First row
+    }
+
+    // =======================================================================
+    // BackgroundLayer Tests
+    // =======================================================================
+
+    #[test]
+    fn test_background_layer_creation() {
+        let layer = BackgroundLayer::new(-50.0, 1024.0, BackgroundLayerType::Clouds);
+
+        assert_eq!(layer.speed, -50.0);
+        assert_eq!(layer.parts[0], 0.0);
+        assert_eq!(layer.parts[1], 1024.0);
+    }
+
+    #[test]
+    fn test_background_layer_static_no_movement() {
+        let mut layer = BackgroundLayer::new(0.0, 1024.0, BackgroundLayerType::Sky);
+        let original_parts = layer.parts;
+
+        // Update with 1 second delta time
+        layer.update(1.0, 1024.0);
+
+        // Static layer (speed = 0) shouldn't move
+        assert_eq!(layer.parts[0], original_parts[0]);
+        assert_eq!(layer.parts[1], original_parts[1]);
+    }
+
+    #[test]
+    fn test_background_layer_scrolls_left() {
+        let mut layer = BackgroundLayer::new(-100.0, 1024.0, BackgroundLayerType::Clouds);
+
+        // Update with 1 second delta time
+        layer.update(1.0, 1024.0);
+
+        // Both parts should move left by 100 pixels
+        assert_eq!(layer.parts[0], -100.0);
+        assert_eq!(layer.parts[1], 924.0);
+    }
+
+    #[test]
+    fn test_background_layer_wraparound() {
+        let mut layer = BackgroundLayer::new(-100.0, 1024.0, BackgroundLayerType::FarField);
+
+        // Scroll for enough time to move second part off-screen
+        // parts[1] starts at 1024.0, needs to reach < 0.0
+        // At -100 px/s, needs > 10.24 seconds
+        layer.update(11.0, 1024.0);
+
+        // After wraparound, the parts should have been swapped and repositioned
+        // The key is that after swap, parts should still provide seamless coverage
+        // Since we scrolled left by 1100 pixels total (-100 * 11):
+        // Original: [0.0, 1024.0] -> [-1100.0, -76.0]
+        // After wraparound and swap, one part should be repositioned
+
+        // After wraparound logic triggers (when parts[1] < 0),
+        // parts[0] gets repositioned to parts[1] + texture_width, then they swap
+        // So we should have continuous coverage with parts spaced by texture_width
+        let spacing = (layer.parts[0] - layer.parts[1]).abs();
+        assert!((spacing - 1024.0).abs() < 1.0,
+                "Parts should be spaced by texture width (1024), but spacing is {}", spacing);
+    }
+
+    #[test]
+    fn test_background_layer_reset() {
+        let mut layer = BackgroundLayer::new(-100.0, 1024.0, BackgroundLayerType::NearField);
+
+        // Scroll the layer
+        layer.update(5.0, 1024.0);
+        assert_ne!(layer.parts[0], 0.0); // Should have moved
+
+        // Reset
+        layer.reset(1024.0);
+
+        // Should be back to initial positions
+        assert_eq!(layer.parts[0], 0.0);
+        assert_eq!(layer.parts[1], 1024.0);
+    }
+
+    #[test]
+    fn test_background_layer_scrolls_right() {
+        let mut layer = BackgroundLayer::new(50.0, 800.0, BackgroundLayerType::Layer4);
+
+        // Update with 1 second delta time (positive speed = scroll right)
+        layer.update(1.0, 800.0);
+
+        // Both parts should move right by 50 pixels
+        assert_eq!(layer.parts[0], 50.0);
+        assert_eq!(layer.parts[1], 850.0);
+    }
+
+    #[test]
+    fn test_background_layer_small_delta_time() {
+        let mut layer = BackgroundLayer::new(-100.0, 1024.0, BackgroundLayerType::Layer5);
+
+        // Update with small delta time (typical frame at 60fps)
+        layer.update(0.016, 1024.0);
+
+        // Movement should be proportional: 100 * 0.016 = 1.6 pixels
+        assert!((layer.parts[0] - (-1.6)).abs() < 0.01);
+        assert!((layer.parts[1] - 1022.4).abs() < 0.01);
     }
 }
