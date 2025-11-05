@@ -16,15 +16,18 @@ A retro-styled Space Invaders arcade shooter built in Rust with macroquad. Featu
 - **Player Upgrades**: Wider ship and more simultaneous shots per wave completed
 
 ### 🎨 Retro Visual Effects
-- **C64-Style Scrolling Text**: "BumbleBee - The Game" with rainbow colors, blinking, wobbling, and large bitmap-style letters
+- **Custom Pixel Font**: Authentic 8x8 pixel font for highscore display (A-Z, 0-9, symbols)
+- **C64-Style Scrolling Highscores**: Top highscores scroll upward like classic Commodore 64 games
+- **9-Layer Parallax Background**: Multi-depth scrolling background with sky, clouds, and terrain layers
 - **Red Bold Score Display**: Prominent red score text with shadow effect during gameplay
-- **Parallax Scrolling Background**: Smooth right-to-left scrolling creates depth
+- **Enhanced Intro Screen**: Game icon, repositioned highscore display, and improved layout
 - **Classic Arcade Aesthetics**: Retro-styled graphics and animations
 
 ### 🏆 Game Systems
 - **Highscore System**:
   - Persistent storage across game sessions
-  - Top 10 leaderboard on main menu
+  - Unlimited leaderboard with C64-style upward scrolling animation
+  - Custom pixel font rendering for authentic retro appearance
   - Automatic score saving on game over
 - **Interactive Menu**:
   - Enter your name before playing
@@ -43,8 +46,10 @@ A retro-styled Space Invaders arcade shooter built in Rust with macroquad. Featu
 
 1. Launch the game
 2. You'll see the **BumbleBees** main menu with:
-    - **"BumbleBee - The Game"** scrolling text with C64-style rainbow effects
-    - Top 10 highscores (if any exist)
+    - **Parallax scrolling background** with 9 animated layers
+    - **Game icon** prominently displayed
+    - **"HIGH SCORES"** header in custom pixel font
+    - **Scrolling highscore list** with C64-style upward animation
     - Name input field
     - Start button
 
@@ -54,16 +59,17 @@ A retro-styled Space Invaders arcade shooter built in Rust with macroquad. Featu
 ### Controls
 
 #### Main Menu
-- **Type**: Enter your player name
+- **Type**: Enter your player name (desktop only)
 - **Backspace**: Delete characters
 - **Enter**: Start the game
+- **Space**: Start the game (recommended for WASM)
 - **Mouse Click**: Click the START GAME button
 
 #### During Gameplay
 - **Left Arrow** (←): Move player left
 - **Right Arrow** (→): Move player right
 - **Space**: Fire bullets
-- **ESC**: Quit game
+- **ESC**: Quit game (desktop only)
 
 #### Game Over Screen
 - **R**: Return to main menu
@@ -141,19 +147,57 @@ cargo run --release # Release (recommended for gameplay)
 
 ### Web (WASM) Deployment
 
+The game fully supports WebAssembly for browser-based play with all features intact!
+
+#### Prerequisites
 ```bash
-# Install wasm32 target
+# Ensure you're using rustup (not Homebrew) for proper WASM support
+rustup --version
+
+# Add wasm32 target
 rustup target add wasm32-unknown-unknown
-
-# Build for web
-cargo build --release --target wasm32-unknown-unknown
-
-# Serve locally (requires basic HTTP server)
-python3 -m http.server 8000
-# Then visit http://localhost:8000 in your browser
 ```
 
-The game includes `index.html` and `wasm-status.html` for web deployment.
+#### Building for Web
+```bash
+# Build optimized WASM binary
+export PATH="$HOME/.cargo/bin:$PATH"  # Ensure rustup's cargo is used
+cargo build --release --target wasm32-unknown-unknown
+
+# Copy WASM file to web root
+cp target/wasm32-unknown-unknown/release/ten.wasm .
+
+# The resources directory must be accessible from web root
+# (Already included in the repository)
+```
+
+#### Serving the Game
+```bash
+# Start a local HTTP server
+python3 -m http.server 8000
+
+# Open in browser
+# Visit: http://localhost:8000/game.html
+```
+
+#### Web-Specific Features
+- **Demo Highscores**: Since LocalStorage requires wasm-bindgen (adds complexity), the WASM version shows 10 demo highscores
+- **In-Memory Scores**: Your score during a session is tracked but not persisted across browser reloads
+- **Canvas Focus**: The canvas automatically focuses on page load to capture keyboard/mouse input
+- **Keyboard Controls**: Press **Space** to start the game from the menu
+- **Full Gameplay**: All game mechanics work identically to the desktop version
+
+#### WASM Files Included
+- **game.html**: Main game page with miniquad loader
+- **ten.wasm**: Compiled WebAssembly binary (~850KB optimized)
+- **resources/**: All game assets (textures, sounds, fonts)
+
+#### Technical Notes
+- Uses **macroquad 0.4** with built-in WASM support (no wasm-bindgen needed)
+- **miniquad** provides the underlying WebGL rendering
+- Canvas size: 1024x768 (matches desktop resolution)
+- **getrandom** with "js" feature for WASM-compatible random numbers
+- Fallback textures for missing resources
 
 ## 📁 Project Structure
 
@@ -175,12 +219,14 @@ ten/
 │   ├── highscore.rs     # Highscore persistence system
 │   └── entities.rs      # Entity re-exports (legacy)
 ├── resources/           # Game assets
-│   ├── background.png   # Parallax background
-│   ├── enemy.png        # Enemy sprite
-│   ├── shoot.wav        # Shooting sound effect
-│   ├── hit.wav          # Hit sound effect
+│   ├── 1.png through 10.png  # Parallax background layers
+│   ├── custom_font.png       # Custom pixel font texture
+│   ├── enemy.png              # Enemy sprite
+│   ├── hummel_icns_temp.png   # Game icon
+│   ├── shoot.wav              # Shooting sound effect
+│   ├── hit.wav                # Hit sound effect
 │   ├── background_music.wav
-│   └── background_old.png
+│   └── bg.png                 # Additional background assets
 ├── assets/              # Additional assets
 │   └── icon.icns        # macOS application icon
 ├── Cargo.toml           # Rust dependencies and metadata
