@@ -132,9 +132,9 @@ src/
 
 ### Game Loop Flow
 
-The game loop is implemented via `EventHandler` in src/game_state.rs:231:
+The game loop is implemented in the `main()` function (src/main.rs) using macroquad's async game loop:
 
-1. **Update** (src/game_state.rs:232):
+1. **Update** (called via `game.update(dt)`):
    - State-based logic (Menu/Playing/GameOver)
    - Handle player input (keyboard/mouse)
    - Update scroll text and background
@@ -143,11 +143,11 @@ The game loop is implemented via `EventHandler` in src/game_state.rs:231:
    - Process collisions (bullets vs enemies)
    - Check if wave is complete
 
-2. **Draw** (src/game_state.rs:277):
-   - Delegates to rendering module
+2. **Draw** (called via `game.draw()`):
    - State-specific rendering (menu/game/game-over)
+   - All rendering is self-contained in draw methods
 
-3. **Input** (src/game_state.rs:281):
+3. **Input** (called via `game.handle_input()`):
    - Menu: Text input for player name, Enter/Click to start
    - Playing: Space to shoot, Arrows to move
    - Game Over: 'R' to return to menu
@@ -211,22 +211,29 @@ log::warn!("Important warning");
 
 ### Resource Management
 
-Resources are loaded in `MainState::new()` (src/game_state.rs:65):
-- Images: background.png (with logged dimensions), enemy.png
-- Audio: shoot.wav, hit.wav, background_music.wav (looped)
-- Mounted from `resources/` directory via ggez filesystem
-- All resource loading is logged
+Resources are loaded in `Game::new()` (src/main.rs:256) following game development naming conventions:
 
-Resource paths use leading `/` (e.g., `/background.png`) which maps to `resources/background.png`.
+**Naming Convention:**
+- Category prefixes: `bg_` (backgrounds), `sprite_` (sprites), `vfx_` (effects), `ui_` (interface), `sfx_` (sounds), `music_` (music)
+- Snake_case with zero-padded sequential numbering (01, 02, 03...)
+
+**Loaded Resources:**
+- **Background layers (9 total):** `bg_layer_01.png` through `bg_layer_08.png`, plus `bg_main.png`
+- **Sprites:** `sprite_enemy.png`
+- **VFX:** `vfx_explosion_01.png`, `vfx_explosion_02.png`, `vfx_explosion_03.png` (3-frame animation)
+- **UI:** `ui_logo.png`, `ui_font.png` (custom pixel font)
+- **Audio:** `sfx_shoot.wav`, `sfx_hit.wav`, `music_background.wav` (looped)
+
+All resources loaded from `resources/` directory with fallback textures for missing files. Loading is logged for debugging.
 
 ### Game State Management
 
-**GameState Enum** (src/game_state.rs:20):
+**GameState Enum** (src/main.rs:114):
 - `Menu`: Main menu with highscores and name input
 - `Playing`: Normal gameplay
 - `GameOver`: Game over screen with final score
 
-**MainState Methods** (documented in src/game_state.rs):
+**Game Methods** (documented in src/main.rs):
 - `new()`: Initialize game with resources (logged)
 - `reset()`: Reset to menu (logged)
 - `start_game()`: Transition from menu to playing (logged)
@@ -291,8 +298,8 @@ log::warn!("Player health low: {}", health);
 
 ### Modifying Game Logic
 
-- Update methods are in `MainState` (src/game_state.rs)
-- Keep update logic in MainState methods
+- Update methods are in `Game` struct (src/main.rs)
+- Keep update logic in Game methods
 - Extract complex logic to systems/ if reusable
 - Add appropriate logging
 - Update tests if behavior changes
@@ -311,8 +318,8 @@ log::warn!("Player health low: {}", health);
 2. **Audio format**: Sound files must be WAV format for ggez compatibility
 3. **Coordinate system**: Origin (0,0) is top-left; Y increases downward
 4. **Thread-safe scrolling**: Text position uses `Arc<Mutex<f32>>` for thread safety
-5. **Enemy movement flag**: The `moved_down` flag (src/game_state.rs:29) prevents repeated downward movement at edges—critical for correct behavior
-6. **Orphan rules**: EventHandler must be implemented in the same crate as MainState (src/game_state.rs), not in main.rs
+5. **Enemy movement flag**: The `descent_distance` field (src/main.rs) controls gradual enemy descent when hitting screen edges—critical for smooth gameplay
+6. **Macroquad game loop**: The async `main()` function uses macroquad's `next_frame().await` pattern for the game loop
 7. **Logging initialization**: Must call `init_logger()` before any logging (done in main.rs:16-18)
 8. **Debug log size**: debug.log can grow large; consider rotating or clearing periodically
 
