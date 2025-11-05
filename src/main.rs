@@ -19,28 +19,38 @@ use systems::{generate_wave, process_collisions};
 
 /// Load texture with fallback paths for bundle compatibility
 async fn load_texture_fallback(path: &str) -> Result<Texture2D, macroquad::Error> {
-    // Try the path as-is first
-    match load_texture(path).await {
-        Ok(texture) => return Ok(texture),
-        Err(_) => {
-            // If we're in a bundle, try relative to executable
-            if let Ok(exe_path) = std::env::current_exe() {
-                if let Some(exe_dir) = exe_path.parent() {
-                    // Try relative to executable directory
-                    let exe_relative = exe_dir.join(path);
-                    if exe_relative.exists() {
-                        if let Some(path_str) = exe_relative.to_str() {
-                            return load_texture(path_str).await;
-                        }
-                    }
+    // For WASM builds, just try the path directly
+    #[cfg(target_arch = "wasm32")]
+    {
+        return load_texture(path).await;
+    }
 
-                    // Try in bundle Resources directory
-                    if exe_dir.ends_with("MacOS") {
-                        if let Some(contents) = exe_dir.parent() {
-                            let resources_path = contents.join("Resources").join(path);
-                            if resources_path.exists() {
-                                if let Some(path_str) = resources_path.to_str() {
-                                    return load_texture(path_str).await;
+    // For desktop builds, try fallback paths
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // Try the path as-is first
+        match load_texture(path).await {
+            Ok(texture) => return Ok(texture),
+            Err(_) => {
+                // If we're in a bundle, try relative to executable
+                if let Ok(exe_path) = std::env::current_exe() {
+                    if let Some(exe_dir) = exe_path.parent() {
+                        // Try relative to executable directory
+                        let exe_relative = exe_dir.join(path);
+                        if exe_relative.exists() {
+                            if let Some(path_str) = exe_relative.to_str() {
+                                return load_texture(path_str).await;
+                            }
+                        }
+
+                        // Try in bundle Resources directory
+                        if exe_dir.ends_with("MacOS") {
+                            if let Some(contents) = exe_dir.parent() {
+                                let resources_path = contents.join("Resources").join(path);
+                                if resources_path.exists() {
+                                    if let Some(path_str) = resources_path.to_str() {
+                                        return load_texture(path_str).await;
+                                    }
                                 }
                             }
                         }
@@ -48,36 +58,46 @@ async fn load_texture_fallback(path: &str) -> Result<Texture2D, macroquad::Error
                 }
             }
         }
-    }
 
-    // Final fallback - return error
-    load_texture(path).await
+        // Final fallback - return error
+        load_texture(path).await
+    }
 }
 
 /// Load sound with fallback paths for bundle compatibility
 async fn load_sound_fallback(path: &str) -> Result<Sound, macroquad::Error> {
-    // Try the path as-is first
-    match load_sound(path).await {
-        Ok(sound) => return Ok(sound),
-        Err(_) => {
-            // If we're in a bundle, try relative to executable
-            if let Ok(exe_path) = std::env::current_exe() {
-                if let Some(exe_dir) = exe_path.parent() {
-                    // Try relative to executable directory
-                    let exe_relative = exe_dir.join(path);
-                    if exe_relative.exists() {
-                        if let Some(path_str) = exe_relative.to_str() {
-                            return load_sound(path_str).await;
-                        }
-                    }
+    // For WASM builds, just try the path directly
+    #[cfg(target_arch = "wasm32")]
+    {
+        return load_sound(path).await;
+    }
 
-                    // Try in bundle Resources directory
-                    if exe_dir.ends_with("MacOS") {
-                        if let Some(contents) = exe_dir.parent() {
-                            let resources_path = contents.join("Resources").join(path);
-                            if resources_path.exists() {
-                                if let Some(path_str) = resources_path.to_str() {
-                                    return load_sound(path_str).await;
+    // For desktop builds, try fallback paths
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // Try the path as-is first
+        match load_sound(path).await {
+            Ok(sound) => return Ok(sound),
+            Err(_) => {
+                // If we're in a bundle, try relative to executable
+                if let Ok(exe_path) = std::env::current_exe() {
+                    if let Some(exe_dir) = exe_path.parent() {
+                        // Try relative to executable directory
+                        let exe_relative = exe_dir.join(path);
+                        if exe_relative.exists() {
+                            if let Some(path_str) = exe_relative.to_str() {
+                                return load_sound(path_str).await;
+                            }
+                        }
+
+                        // Try in bundle Resources directory
+                        if exe_dir.ends_with("MacOS") {
+                            if let Some(contents) = exe_dir.parent() {
+                                let resources_path = contents.join("Resources").join(path);
+                                if resources_path.exists() {
+                                    if let Some(path_str) = resources_path.to_str() {
+                                        return load_sound(path_str).await;
+                                    }
                                 }
                             }
                         }
@@ -85,10 +105,10 @@ async fn load_sound_fallback(path: &str) -> Result<Sound, macroquad::Error> {
                 }
             }
         }
-    }
 
-    // Final fallback - return error
-    load_sound(path).await
+        // Final fallback - return error
+        load_sound(path).await
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -882,11 +902,14 @@ impl Game {
             GameState::Menu => {
                 // Handle text input
                 if let Some(character) = get_last_key_pressed() {
+                    println!("Key pressed: {:?}", character);
                     match character {
                         KeyCode::Backspace => {
                             self.player_name.pop();
+                            println!("Player name after backspace: {}", self.player_name);
                         }
                         KeyCode::Enter => {
+                            println!("Enter pressed, starting game");
                             self.start_game();
                         }
                         _ => {}
@@ -895,19 +918,32 @@ impl Game {
 
                 // Handle character input
                 if let Some(ch) = get_char_pressed() {
+                    println!("Char pressed: {}", ch);
                     if ch.is_alphanumeric() && self.player_name.len() < 20 {
                         self.player_name.push(ch);
+                        println!("Player name: {}", self.player_name);
                     }
                 }
 
                 // Handle mouse click on start button
                 if is_mouse_button_pressed(MouseButton::Left) {
                     let (mouse_x, mouse_y) = mouse_position();
+                    println!("Mouse clicked at: ({}, {})", mouse_x, mouse_y);
                     let button_rect = Rect::new(SCREEN_WIDTH / 2.0 - 100.0, 660.0, 200.0, 50.0);
+                    println!("Button rect: x={}, y={}, w={}, h={}", button_rect.x, button_rect.y, button_rect.w, button_rect.h);
 
                     if button_rect.contains(Vec2::new(mouse_x, mouse_y)) {
+                        println!("Button clicked!");
                         self.start_game();
+                    } else {
+                        println!("Click outside button");
                     }
+                }
+
+                // Also allow pressing Space bar to start game from menu
+                if is_key_pressed(KeyCode::Space) {
+                    println!("Space pressed in menu, starting game");
+                    self.start_game();
                 }
             }
             GameState::Playing => {
@@ -954,27 +990,23 @@ async fn main() {
 }
 
 #[cfg(target_arch = "wasm32")]
-use wasm_bindgen::prelude::*;
-
-#[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(start)]
-pub fn main() {
+#[macroquad::main(window_conf)]
+async fn main() {
     // WASM version
-    log::info!("Starting BumbleBees game (WASM)");
+    // Note: macroquad provides its own logging to console
+    println!("Starting BumbleBees game (WASM)");
 
-    wasm_bindgen_futures::spawn_local(async {
-        let mut game = Game::new().await;
+    let mut game = Game::new().await;
 
-        loop {
-            let dt = get_frame_time();
+    loop {
+        let dt = get_frame_time();
 
-            game.handle_input();
-            game.update(dt);
-            game.draw();
+        game.handle_input();
+        game.update(dt);
+        game.draw();
 
-            next_frame().await
-        }
-    });
+        next_frame().await
+    }
 }
 
 #[cfg(test)]

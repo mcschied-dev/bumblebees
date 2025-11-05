@@ -119,34 +119,30 @@ impl HighscoreManager {
     }
 
     // WASM LocalStorage implementation
+    // Note: Disabled for now as it requires wasm-bindgen
+    // Highscores will be in-memory only for WASM builds
     #[cfg(target_arch = "wasm32")]
     fn load_from_localstorage(&self) -> Vec<HighscoreEntry> {
-        use web_sys::window;
-
-        if let Some(window) = window() {
-            if let Ok(Some(storage)) = window.local_storage() {
-                if let Ok(Some(data)) = storage.get_item(&self.storage_key) {
-                    if let Ok(entries) = serde_json::from_str::<Vec<HighscoreEntry>>(&data) {
-                        return entries;
-                    }
-                }
-            }
-        }
-
-        Vec::new()
+        println!("WASM: LocalStorage disabled - using demo highscores");
+        // Return some demo highscores for WASM builds
+        vec![
+            HighscoreEntry::new("ALICE".to_string(), 5000),
+            HighscoreEntry::new("BOB".to_string(), 4500),
+            HighscoreEntry::new("CHARLIE".to_string(), 4000),
+            HighscoreEntry::new("DIANA".to_string(), 3500),
+            HighscoreEntry::new("EVE".to_string(), 3000),
+            HighscoreEntry::new("FRANK".to_string(), 2500),
+            HighscoreEntry::new("GRACE".to_string(), 2000),
+            HighscoreEntry::new("HENRY".to_string(), 1500),
+            HighscoreEntry::new("IVY".to_string(), 1000),
+            HighscoreEntry::new("JACK".to_string(), 500),
+        ]
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn save_to_localstorage(&self, entries: &[HighscoreEntry]) {
-        use web_sys::window;
-
-        if let Ok(json) = serde_json::to_string(entries) {
-            if let Some(window) = window() {
-                if let Ok(Some(storage)) = window.local_storage() {
-                    let _ = storage.set_item(&self.storage_key, &json);
-                }
-            }
-        }
+    fn save_to_localstorage(&self, _entries: &[HighscoreEntry]) {
+        // No-op for WASM builds without wasm-bindgen
+        println!("WASM: LocalStorage disabled - highscores not persisted");
     }
 }
 

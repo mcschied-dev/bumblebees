@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>BumbleBees - Space Invaders Clone</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #title {
+            color: white;
+            font-size: 3em;
+            font-weight: 700;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            margin: 0;
+        }
+
+        canvas {
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            display: block;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 28px;
+            text-align: center;
+            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            padding: 40px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        #loading.hidden {
+            display: none;
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto 0;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #error {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #f8d7da;
+            color: #721c24;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #f5c6cb;
+            max-width: 500px;
+            text-align: center;
+            z-index: 1001;
+        }
+
+        #error.visible {
+            display: block;
+        }
+
+        .info {
+            color: white;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">
+        🐝 Loading BumbleBees...
+        <div class="loader"></div>
+    </div>
+
+    <div id="error">
+        <h3>Failed to load game</h3>
+        <p id="error-message"></p>
+    </div>
+
+    <div id="game-container">
+        <h1 id="title">🐝 BumbleBees</h1>
+        <canvas id="glcanvas" width="1024" height="768" tabindex="0"></canvas>
+        <div class="info">
+            Use Arrow Keys to move | Space to shoot | Press Space to start
+        </div>
+    </div>
+
+    <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
+    <script>
+        // The miniquad bundle will automatically call load() and start the game
+        // We just need to hide the loading indicator once the game starts
+        window.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loading').textContent = '🐝 Loading game...';
+
+            const canvas = document.getElementById('glcanvas');
+
+            // Automatically focus the canvas when page loads
+            setTimeout(function() {
+                canvas.focus();
+                console.log('Canvas focused');
+            }, 500);
+
+            // Re-focus canvas when clicked
+            canvas.addEventListener('click', function() {
+                canvas.focus();
+                console.log('Canvas re-focused on click');
+            });
+
+            // Re-focus canvas when mouse enters
+            canvas.addEventListener('mouseenter', function() {
+                canvas.focus();
+            });
+
+            // Call load function from mq_js_bundle
+            if (typeof load === 'function') {
+                console.log('Loading WASM with miniquad...');
+                load("ten.wasm");
+
+                // Hide loading screen after a short delay (game will start automatically)
+                setTimeout(function() {
+                    const loadingEl = document.getElementById('loading');
+                    if (loadingEl) {
+                        loadingEl.style.display = 'none';
+                    }
+                    const errorEl = document.getElementById('error');
+                    if (errorEl) {
+                        errorEl.style.display = 'none';
+                    }
+                    // Focus canvas again after game loads
+                    canvas.focus();
+                }, 1000);
+            } else {
+                console.error('load() function not found from mq_js_bundle.js');
+                document.getElementById('loading').innerHTML = '❌ Failed to load miniquad bundle';
+            }
+        });
+    </script>
+</body>
+</html>
