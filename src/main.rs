@@ -372,63 +372,63 @@ impl Game {
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load sky texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[135, 206, 235, 255])
+                Texture2D::from_rgba8(1024, 575, &[135, 206, 235, 255])
             }); // Sky blue fallback
 
         let clouds = load_texture_fallback("resources/bg_layer_02.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load clouds texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[255, 255, 255, 255])
+                Texture2D::from_rgba8(1024, 575, &[255, 255, 255, 255])
             });
 
         let far_field = load_texture_fallback("resources/bg_layer_03.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load far_field texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[34, 139, 34, 255])
+                Texture2D::from_rgba8(1024, 575, &[34, 139, 34, 255])
             }); // Forest green fallback
 
         let near_field = load_texture_fallback("resources/bg_main.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load near_field texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[0, 100, 0, 255])
+                Texture2D::from_rgba8(1024, 575, &[0, 100, 0, 255])
             }); // Dark green fallback
 
         let layer_4 = load_texture_fallback("resources/bg_layer_04.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load layer_4 texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[150, 150, 150, 255])
+                Texture2D::from_rgba8(1024, 575, &[150, 150, 150, 255])
             });
 
         let layer_5 = load_texture_fallback("resources/bg_layer_05.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load layer_5 texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[150, 150, 150, 255])
+                Texture2D::from_rgba8(1024, 575, &[150, 150, 150, 255])
             });
 
         let layer_6 = load_texture_fallback("resources/bg_layer_06.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load layer_6 texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[150, 150, 150, 255])
+                Texture2D::from_rgba8(1024, 575, &[150, 150, 150, 255])
             });
 
         let layer_7 = load_texture_fallback("resources/bg_layer_07.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load layer_7 texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[150, 150, 150, 255])
+                Texture2D::from_rgba8(1024, 575, &[150, 150, 150, 255])
             });
 
         let layer_8 = load_texture_fallback("resources/bg_layer_08.png")
             .await
             .unwrap_or_else(|_| {
                 log::warn!("Failed to load layer_8 texture, using fallback");
-                Texture2D::from_rgba8(1024, 768, &[150, 150, 150, 255])
+                Texture2D::from_rgba8(1024, 575, &[150, 150, 150, 255])
             });
 
         let intro_icon = load_texture_fallback("resources/ui_logo.png")

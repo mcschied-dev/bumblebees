@@ -135,6 +135,8 @@
         var wasmExports = null;
         var stringCache = [];
         var memoryAllocatorOffset = 2000000; // Start allocation at 2MB
+        var totalAllocated = 0; // Track total allocated memory
+        const MAX_TOTAL_ALLOCATION = 10 * 1024 * 1024; // 10MB total cap
 
         // Try to capture WASM memory if not already available
         function tryCaptureMemory() {
@@ -209,6 +211,11 @@
                 const bytes = encoder.encode(str);
                 const requiredSize = bytes.length + 1; // +1 for null terminator
 
+                // Check total allocation limit
+                if (totalAllocated + requiredSize > MAX_TOTAL_ALLOCATION) {
+                    return 0; // Reject to prevent memory exhaustion
+                }
+
                 // Check if we need to grow memory
                 if (memoryAllocatorOffset + requiredSize > wasmMemory.buffer.byteLength) {
                     const pagesNeeded = Math.ceil((memoryAllocatorOffset + requiredSize - wasmMemory.buffer.byteLength) / 65536);
@@ -237,6 +244,9 @@
 
                 // Advance allocator
                 memoryAllocatorOffset += requiredSize;
+
+                // Track total allocation
+                totalAllocated += requiredSize;
 
                 // Align to 4-byte boundary for better performance
                 memoryAllocatorOffset = (memoryAllocatorOffset + 3) & ~3;
