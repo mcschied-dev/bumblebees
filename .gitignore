@@ -30,6 +30,9 @@ security-report.html
 # Large binary files (rebuild locally)
 ten.wasm
 *.wasm
+ten-macos
+BumbleBees-macOS.zip
+*.zip
 
 # Temporary files
 custom_font.png
