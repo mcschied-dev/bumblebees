@@ -249,7 +249,7 @@ All resources loaded from `resources/` directory with fallback textures for miss
 Located in src/constants.rs (all documented):
 ```rust
 SCREEN_WIDTH: 1024.0
-SCREEN_HEIGHT: 768.0
+SCREEN_HEIGHT: 575.0
 PLAYER_SPEED: 300.0
 BULLET_SPEED: 700.0
 INITIAL_ENEMY_SPEED: 150.0

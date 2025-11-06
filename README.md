@@ -346,7 +346,7 @@ Edit constants in `src/constants.rs`:
 ```rust
 // Screen dimensions
 pub const SCREEN_WIDTH: f32 = 1024.0;
-pub const SCREEN_HEIGHT: f32 = 768.0;
+pub const SCREEN_HEIGHT: f32 = 575.0;
 
 // Speed settings
 pub const PLAYER_SPEED: f32 = 300.0;
