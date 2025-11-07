@@ -8,6 +8,6 @@ pub mod explosion;
 pub mod player;
 
 pub use bullet::Bullet;
-pub use enemy::Enemy;
+pub use enemy::{Enemy, EnemyType};
 pub use explosion::Explosion;
 pub use player::Player;

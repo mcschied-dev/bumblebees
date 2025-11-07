@@ -12,7 +12,7 @@ mod highscore;
 mod systems;
 
 use constants::*;
-use entities::{Bullet, Enemy, Explosion, Player};
+use entities::{Bullet, Enemy, EnemyType, Explosion, Player};
 use highscore::HighscoreManager;
 use systems::{generate_wave, process_collisions};
 
@@ -886,21 +886,19 @@ impl Game {
     }
 
     fn update_collisions(&mut self) {
-        let destroyed_positions = process_collisions(&mut self.enemies, &mut self.bullets);
+        let destroyed_info = process_collisions(&mut self.enemies, &mut self.bullets);
 
-        if !destroyed_positions.is_empty() {
+        if !destroyed_info.is_empty() {
             // Play hit sound
             if let Some(ref sound) = self.hit_sound {
                 play_sound_once(sound);
             }
 
-            // Update score
-            self.score += destroyed_positions.len() as u32 * POINTS_PER_ENEMY;
-
-            // Create explosion at each destroyed enemy position
-            for (x, y) in destroyed_positions {
+            // Create explosions and update score for each destroyed enemy
+            for (x, y, points) in destroyed_info {
                 self.explosions.push(Explosion::new(x, y));
-                log::debug!("Created explosion at ({}, {})", x, y);
+                self.score += points; // Add enemy-specific points
+                log::debug!("Created explosion at ({}, {}) - {} points", x, y, points);
             }
         }
     }
@@ -1140,7 +1138,35 @@ impl Game {
 
     fn draw_enemies(&self) {
         for enemy in &self.enemies {
-            draw_texture(&self.enemy_image, enemy.x - 20.0, enemy.y - 20.0, WHITE);
+            // Different colors for different enemy types
+            let color = match enemy.enemy_type {
+                EnemyType::Standard => WHITE,                   // Standard: White
+                EnemyType::Fast => Color::from_rgba(255, 255, 0, 255), // Fast: Yellow
+                EnemyType::Tank => Color::from_rgba(255, 0, 0, 255),   // Tank: Red
+                EnemyType::Swooper => Color::from_rgba(0, 255, 255, 255), // Swooper: Cyan
+            };
+
+            // Draw enemy with color tint
+            draw_texture(&self.enemy_image, enemy.x - 20.0, enemy.y - 20.0, color);
+
+            // For Tank enemies, draw health bar
+            if enemy.enemy_type == EnemyType::Tank && enemy.health < 3 {
+                let health_width = (enemy.health as f32 / 3.0) * 30.0;
+                draw_rectangle(
+                    enemy.x - 15.0,
+                    enemy.y - 28.0,
+                    30.0,
+                    3.0,
+                    Color::from_rgba(50, 50, 50, 200),
+                ); // Background
+                draw_rectangle(
+                    enemy.x - 15.0,
+                    enemy.y - 28.0,
+                    health_width,
+                    3.0,
+                    Color::from_rgba(255, 0, 0, 255),
+                ); // Health bar
+            }
         }
     }
 

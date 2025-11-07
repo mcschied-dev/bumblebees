@@ -24,10 +24,8 @@ pub const DEFENDER_LINE: f32 = 100.0;
 /// Collision detection radius in pixels
 pub const COLLISION_RADIUS: f32 = 20.0;
 
-/// Points awarded for destroying one enemy
-pub const POINTS_PER_ENEMY: u32 = 10;
-
 /// Enemy speed increase per wave in pixels per second
+/// Note: Points are now determined by enemy type (Standard:10, Fast:20, Tank:50, Swooper:30)
 pub const SPEED_INCREASE_PER_WAVE: f32 = 50.0;
 
 /// Bullet speed increase per wave in pixels per second

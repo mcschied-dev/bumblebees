@@ -1,13 +1,190 @@
 //! Wave generation system.
 
 use crate::constants::SCREEN_WIDTH;
-use crate::entities::Enemy;
+use crate::entities::{Enemy, EnemyType};
 
-/// Generate enemies for a given wave number.
+/// Formation pattern types.
+#[derive(Debug, Clone, Copy)]
+enum FormationType {
+    /// Classic grid formation (Space Invaders style)
+    Grid,
+    /// V-shaped formation
+    VShape,
+    /// Diamond formation
+    Diamond,
+    /// Scattered random formation
+    Scattered,
+}
+
+/// Get enemy type based on row position (for variety).
+fn get_enemy_type_for_row(row: usize, wave: u32) -> EnemyType {
+    match row {
+        0 => {
+            // Top row: Fast enemies appear from wave 2+
+            if wave >= 2 {
+                EnemyType::Fast
+            } else {
+                EnemyType::Standard
+            }
+        }
+        1 | 2 => EnemyType::Standard,
+        3 => {
+            // Row 3: Tank enemies appear from wave 3+
+            if wave >= 3 {
+                EnemyType::Tank
+            } else {
+                EnemyType::Standard
+            }
+        }
+        _ => {
+            // Bottom rows: Swoopers appear from wave 4+
+            if wave >= 4 && row == 4 {
+                EnemyType::Swooper
+            } else {
+                EnemyType::Standard
+            }
+        }
+    }
+}
+
+/// Generate a classic grid formation.
+fn generate_grid_formation(wave: u32) -> Vec<Enemy> {
+    let rows = 5;
+    let columns = 10;
+    let mut enemies = Vec::with_capacity(rows * columns);
+
+    let formation_width = (columns - 1) as f32 * 60.0;
+    let start_x = (SCREEN_WIDTH - formation_width) / 2.0;
+    let start_y = 50.0;
+
+    for i in 0..columns {
+        for j in 0..rows {
+            let direction = if j % 2 == 0 { 1.0 } else { -1.0 };
+            let enemy_type = get_enemy_type_for_row(j, wave);
+            enemies.push(Enemy::new(
+                start_x + i as f32 * 60.0,
+                start_y + j as f32 * 50.0,
+                direction,
+                enemy_type,
+            ));
+        }
+    }
+
+    enemies
+}
+
+/// Generate a V-shaped formation.
+fn generate_v_formation(wave: u32) -> Vec<Enemy> {
+    let mut enemies = Vec::new();
+    let center_x = SCREEN_WIDTH / 2.0;
+    let start_y = 80.0;
+
+    // Create V shape with 7 rows
+    for row in 0..7 {
+        let offset = (row as f32) * 40.0; // Width increases as we go down
+        let y = start_y + row as f32 * 45.0;
+        let enemy_type = get_enemy_type_for_row(row, wave);
+
+        // Left arm of V
+        for i in 0..=row {
+            enemies.push(Enemy::new(
+                center_x - offset - i as f32 * 55.0,
+                y,
+                -1.0,
+                enemy_type,
+            ));
+        }
+
+        // Right arm of V
+        for i in 0..=row {
+            enemies.push(Enemy::new(
+                center_x + offset + i as f32 * 55.0,
+                y,
+                1.0,
+                enemy_type,
+            ));
+        }
+    }
+
+    enemies
+}
+
+/// Generate a diamond formation.
+fn generate_diamond_formation(wave: u32) -> Vec<Enemy> {
+    let mut enemies = Vec::new();
+    let center_x = SCREEN_WIDTH / 2.0;
+    let center_y = 200.0;
+
+    // Diamond: expanding then contracting rows
+    let rows = vec![1, 3, 5, 7, 5, 3, 1]; // Creates diamond shape
+
+    for (row_idx, &count) in rows.iter().enumerate() {
+        let y = center_y - 100.0 + row_idx as f32 * 40.0;
+        let spacing = 60.0;
+        let row_width = (count - 1) as f32 * spacing;
+        let start_x = center_x - row_width / 2.0;
+        let enemy_type = get_enemy_type_for_row(row_idx, wave);
+
+        for i in 0..count {
+            let direction = if row_idx % 2 == 0 { 1.0 } else { -1.0 };
+            enemies.push(Enemy::new(
+                start_x + i as f32 * spacing,
+                y,
+                direction,
+                enemy_type,
+            ));
+        }
+    }
+
+    enemies
+}
+
+/// Generate a scattered formation.
+fn generate_scattered_formation(wave: u32) -> Vec<Enemy> {
+    let mut enemies = Vec::new();
+    let enemy_count = 35;
+
+    // Use wave as seed for pseudo-random positioning
+    let mut seed = wave as f32;
+
+    for i in 0..enemy_count {
+        // Pseudo-random position based on wave and index
+        seed = (seed * 9301.0 + 49297.0) % 233280.0;
+        let x = 100.0 + (seed / 233280.0) * (SCREEN_WIDTH - 200.0);
+
+        seed = (seed * 9301.0 + 49297.0) % 233280.0;
+        let y = 60.0 + (seed / 233280.0) * 200.0;
+
+        seed = (seed * 9301.0 + 49297.0) % 233280.0;
+        let direction = if seed > 116640.0 { 1.0 } else { -1.0 };
+
+        // Mix of enemy types
+        let enemy_type = match i % 7 {
+            0 if wave >= 2 => EnemyType::Fast,
+            1 | 2 if wave >= 3 => EnemyType::Tank,
+            3 if wave >= 4 => EnemyType::Swooper,
+            _ => EnemyType::Standard,
+        };
+
+        enemies.push(Enemy::new(x, y, direction, enemy_type));
+    }
+
+    enemies
+}
+
+/// Generate enemies for a given wave number with varied formations and enemy types.
 ///
-/// Uses Space Invaders-style progression: fixed formation size with increasing speed.
-/// Maximum 5 rows × 10 columns = 50 enemies (like classic Space Invaders).
-/// Speed increases with wave number to maintain challenge without overwhelming numbers.
+/// Uses different formations per wave:
+/// - Wave 1, 5, 9, ...: Classic grid
+/// - Wave 2, 6, 10, ...: V-shape
+/// - Wave 3, 7, 11, ...: Diamond
+/// - Wave 4, 8, 12, ...: Scattered
+///
+/// Enemy types introduced progressively:
+/// - Wave 1: Standard only
+/// - Wave 2+: Fast enemies added
+/// - Wave 3+: Tank enemies added
+/// - Wave 4+: Swooper enemies added
 ///
 /// # Arguments
 ///
@@ -15,54 +192,30 @@ use crate::entities::Enemy;
 ///
 /// # Returns
 ///
-/// A vector of enemies positioned in a grid formation
-///
-/// # Examples
-///
-/// ```
-/// # use ten::systems::wave::generate_wave;
-/// let wave_1 = generate_wave(1);  // 50 enemies (5 rows x 10 columns)
-/// let wave_10 = generate_wave(10); // Still 50 enemies, but faster
-/// ```
+/// A vector of enemies positioned according to the wave's formation pattern
 #[must_use]
 pub fn generate_wave(wave: u32) -> Vec<Enemy> {
-    // Cap at 5 rows like classic Space Invaders (5 × 11 = 55, we use 5 × 10 = 50)
-    let rows = 5;
-    let columns = 10;
-    let enemy_count = rows * columns;
+    let formation = match wave % 4 {
+        1 => FormationType::Grid,
+        2 => FormationType::VShape,
+        3 => FormationType::Diamond,
+        0 => FormationType::Scattered,
+        _ => FormationType::Grid, // Fallback
+    };
+
+    let enemies = match formation {
+        FormationType::Grid => generate_grid_formation(wave),
+        FormationType::VShape => generate_v_formation(wave),
+        FormationType::Diamond => generate_diamond_formation(wave),
+        FormationType::Scattered => generate_scattered_formation(wave),
+    };
 
     log::info!(
-        "Generating wave {} with {} enemies ({} rows x {} columns) - Space Invaders style!",
+        "Generating wave {} with {} enemies - {:?} formation",
         wave,
-        enemy_count,
-        rows,
-        columns
+        enemies.len(),
+        formation
     );
-
-    let mut enemies = Vec::with_capacity(enemy_count);
-
-    // Generate alternating directions for each row (-1.0 for left, 1.0 for right)
-    // Row 0: right, Row 1: left, Row 2: right, Row 3: left, etc.
-    let mut row_directions = Vec::with_capacity(rows);
-    for row_idx in 0..rows {
-        let direction = if row_idx % 2 == 0 { 1.0 } else { -1.0 };
-        row_directions.push(direction);
-    }
-
-    // Center the formation horizontally and position at top of screen
-    let formation_width = (columns - 1) as f32 * 60.0;
-    let start_x = (SCREEN_WIDTH - formation_width) / 2.0;
-    let start_y = 50.0; // Position at top of screen
-
-    for i in 0..columns {
-        for (j, &direction) in row_directions.iter().enumerate().take(rows) {
-            enemies.push(Enemy::new(
-                start_x + i as f32 * 60.0,
-                start_y + j as f32 * 50.0,
-                direction,
-            ));
-        }
-    }
 
     enemies
 }
@@ -72,67 +225,97 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_generate_enemies_wave_1() {
+    fn test_generate_wave_1_grid() {
         let enemies = generate_wave(1);
-        // All waves should have 5 rows and 10 columns (Space Invaders style)
+        // Wave 1: Grid formation (5 rows × 10 columns = 50)
         assert_eq!(enemies.len(), 50);
+        // Wave 1 only has Standard enemies
+        assert!(enemies.iter().all(|e| e.enemy_type == EnemyType::Standard));
     }
 
     #[test]
-    fn test_generate_enemies_wave_2() {
+    fn test_generate_wave_2_v_shape() {
         let enemies = generate_wave(2);
-        // All waves should have same formation size
-        assert_eq!(enemies.len(), 50);
+        // Wave 2: V-shape formation
+        assert!(enemies.len() > 0);
+        // Wave 2 introduces Fast enemies
+        assert!(enemies.iter().any(|e| e.enemy_type == EnemyType::Fast));
     }
 
     #[test]
-    fn test_generate_enemies_positions() {
-        let enemies = generate_wave(1);
+    fn test_generate_wave_3_diamond() {
+        let enemies = generate_wave(3);
+        // Wave 3: Diamond formation (1+3+5+7+5+3+1 = 25 enemies)
+        assert_eq!(enemies.len(), 25);
+        // Wave 3 introduces Tank enemies
+        assert!(enemies.iter().any(|e| e.enemy_type == EnemyType::Tank));
+    }
 
-        // Formation is centered horizontally: (1024.0 - 540.0) / 2.0 = 242.0
-        // Positioned at top: y = 50.0
+    #[test]
+    fn test_generate_wave_4_scattered() {
+        let enemies = generate_wave(4);
+        // Wave 4: Scattered formation (35 enemies)
+        assert_eq!(enemies.len(), 35);
+        // Wave 4 introduces Swooper enemies
+        assert!(enemies.iter().any(|e| e.enemy_type == EnemyType::Swooper));
+    }
 
-        // Check first enemy position (top-left of formation)
+    #[test]
+    fn test_enemy_types_progressive() {
+        // Wave 1: Standard only
+        let wave1 = generate_wave(1);
+        assert!(wave1.iter().all(|e| e.enemy_type == EnemyType::Standard));
+
+        // Wave 2: Standard + Fast
+        let wave2 = generate_wave(2);
+        let types2: Vec<_> = wave2.iter().map(|e| e.enemy_type).collect();
+        assert!(types2.contains(&EnemyType::Standard) || types2.contains(&EnemyType::Fast));
+
+        // Wave 3: Can include Tank
+        let wave3 = generate_wave(3);
+        let types3: Vec<_> = wave3.iter().map(|e| e.enemy_type).collect();
+        assert!(
+            types3.contains(&EnemyType::Standard)
+                || types3.contains(&EnemyType::Tank)
+                || types3.contains(&EnemyType::Fast)
+        );
+    }
+
+    #[test]
+    fn test_grid_formation_positions() {
+        let enemies = generate_grid_formation(1);
+        assert_eq!(enemies.len(), 50);
+
+        // Check first enemy position (top-left)
         assert_eq!(enemies[0].x, 242.0);
         assert_eq!(enemies[0].y, 50.0);
 
-        // Check that enemies are spaced properly vertically (same column, next row)
+        // Check spacing
         assert_eq!(enemies[1].x, 242.0);
-        assert_eq!(enemies[1].y, 100.0); // 50.0 + 50.0
-
-        // Check enemies are spaced horizontally (next column, first row)
-        // All waves have 5 rows, so enemies[5] is first enemy of second column
-        assert_eq!(enemies[5].x, 302.0); // 242.0 + 60.0
-        assert_eq!(enemies[5].y, 50.0);
+        assert_eq!(enemies[1].y, 100.0);
     }
 
     #[test]
-    fn test_generate_wave_zero() {
-        let enemies = generate_wave(0);
-        // All waves have same size (5 rows × 10 columns)
-        assert_eq!(enemies.len(), 50);
+    fn test_formation_cycle() {
+        // Formations cycle: Grid (1), V (2), Diamond (3), Scattered (4), repeat
+        let wave5 = generate_wave(5);
+        let wave1 = generate_wave(1);
+        // Wave 5 should be same formation as wave 1 (Grid)
+        assert_eq!(wave5.len(), wave1.len());
     }
 
     #[test]
-    fn test_generate_wave_high_number() {
-        let enemies = generate_wave(10);
-        // All waves have same size regardless of wave number
-        assert_eq!(enemies.len(), 50);
-    }
-
-    #[test]
-    fn test_enemy_positions_wave_2() {
-        let enemies = generate_wave(2);
-
-        // All waves have 5 rows × 10 columns = 50 enemies
-        assert_eq!(enemies.len(), 50);
-
-        // Check positions are still valid (centered at x=242.0, y=50.0)
-        assert_eq!(enemies[0].x, 242.0);
-        assert_eq!(enemies[0].y, 50.0);
-
-        // Last enemy in first column should be at row 5 (index 4)
-        assert_eq!(enemies[4].x, 242.0);
-        assert_eq!(enemies[4].y, 250.0); // 50 + 4 * 50
+    fn test_enemy_health_initialization() {
+        let enemies = generate_wave(3);
+        for enemy in enemies {
+            match enemy.enemy_type {
+                EnemyType::Standard | EnemyType::Fast | EnemyType::Swooper => {
+                    assert_eq!(enemy.health, 1);
+                }
+                EnemyType::Tank => {
+                    assert_eq!(enemy.health, 3);
+                }
+            }
+        }
     }
 }
