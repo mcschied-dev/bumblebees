@@ -37,3 +37,7 @@ BumbleBees-macOS.zip
 # Temporary files
 custom_font.png
 game2.html
+
+# Deployment credentials and scripts (NEVER commit these!)
+.env
+deploy.sh
