@@ -28,9 +28,9 @@ sbom-viewer.html
 security-report.html
 
 # Large binary files (rebuild locally)
-ten.wasm
+bumblebees.wasm
 *.wasm
-ten-macos
+bumblebees-macos
 BumbleBees-macOS.zip
 *.zip
 

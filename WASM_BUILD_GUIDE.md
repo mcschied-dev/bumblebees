@@ -27,12 +27,12 @@ cargo build --release --target wasm32-unknown-unknown
 
 ### Step 3: Copy WASM file to web root
 ```bash
-cp target/wasm32-unknown-unknown/release/ten.wasm .
+cp target/wasm32-unknown-unknown/release/bumblebees.wasm .
 ```
 
 ### Step 4: Verify build
 ```bash
-ls -la ten.wasm
+ls -la bumblebees.wasm
 # Expected: ~948KB file
 ```
 
@@ -52,18 +52,18 @@ rustup target add wasm32-unknown-unknown
 cargo build --release --target wasm32-unknown-unknown
 
 # Copy to web root
-cp target/wasm32-unknown-unknown/release/ten.wasm .
+cp target/wasm32-unknown-unknown/release/bumblebees.wasm .
 
 # Verify
 echo "WASM build complete:"
-ls -lh ten.wasm
+ls -lh bumblebees.wasm
 ```
 
 ## Web Deployment
 
 ### Required Files
 - `game.html` - Main game page
-- `ten.wasm` - Compiled binary (~948KB)
+- `bumblebees.wasm` - Compiled binary (~948KB)
 - `resources/` - All game assets
 
 ### Local Testing
@@ -79,7 +79,7 @@ Copy these files to your web server:
 ```
 your-webserver/
 ├── game.html
-├── ten.wasm
+├── bumblebees.wasm
 └── resources/
     ├── *.png (backgrounds, sprites, fonts)
     ├── *.wav (sound effects, music)
@@ -129,5 +129,5 @@ your-webserver/
 ---
 
 **Last updated**: November 6, 2025
-**WASM version**: ten.wasm (948KB)
+**WASM version**: bumblebees.wasm (948KB)
 **Game version**: BumbleBees v1.0 with 3-shot limit

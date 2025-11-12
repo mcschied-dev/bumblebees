@@ -460,7 +460,7 @@
 
             // Call load function from mq_js_bundle
             if (typeof load === 'function') {
-                load("ten.wasm?v=" + Date.now());
+                load("bumblebees.wasm?v=" + Date.now());
                 // Loading screen will be hidden automatically when game reaches 100%
             } else {
                 document.getElementById('loading').innerHTML = '❌ Failed to load miniquad bundle';

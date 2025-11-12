@@ -191,7 +191,7 @@ export PATH="$HOME/.cargo/bin:$PATH"  # Ensure rustup's cargo is used
 cargo build --release --target wasm32-unknown-unknown
 
 # Copy WASM file to web root
-cp target/wasm32-unknown-unknown/release/ten.wasm .
+cp target/wasm32-unknown-unknown/release/bumblebees.wasm .
 
 # The resources directory must be accessible from web root
 # (Already included in the repository)
@@ -215,7 +215,7 @@ python3 -m http.server 8000
 
 #### WASM Files Included
 - **game.html**: Main game page with miniquad loader
-- **ten.wasm**: Compiled WebAssembly binary (~850KB optimized)
+- **bumblebees.wasm**: Compiled WebAssembly binary (~850KB optimized)
 - **resources/**: All game assets (textures, sounds, fonts)
 
 #### Deploying to a Web Server
@@ -224,7 +224,7 @@ To deploy the game to your web server, copy these files:
 ```
 your-webserver/
 ├── game.html                 # Main game page
-├── ten.wasm                  # Build this locally (see above)
+├── bumblebees.wasm                  # Build this locally (see above)
 └── resources/                # Copy entire directory
     ├── bg_layer_01.png       (parallax layer 1 - sky)
     ├── bg_layer_02.png       (parallax layer 2 - clouds)

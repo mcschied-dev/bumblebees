@@ -49,7 +49,7 @@ To build WASM and upload all files to your server:
 
 The script will:
 1. ✅ Build WASM in release mode (optimized)
-2. ✅ Upload `ten.wasm` (game binary)
+2. ✅ Upload `bumblebees.wasm` (game binary)
 3. ✅ Upload `game.html` (game page)
 4. ✅ Upload audio files (`intro.ogg`, `music_background.ogg`)
 5. ✅ Verify deployment
@@ -57,7 +57,7 @@ The script will:
 ### What Gets Uploaded
 
 By default, the script uploads:
-- `ten.wasm` - WASM game binary (~954KB)
+- `bumblebees.wasm` - WASM game binary (~954KB)
 - `game.html` - Game HTML page
 - `resources/intro.ogg` - Intro music (1.8MB)
 - `resources/music_background.ogg` - Background music (2.5MB)
@@ -81,7 +81,7 @@ If you prefer to deploy manually without the script:
 cargo build --target wasm32-unknown-unknown --release
 
 # Upload files manually (use your preferred FTP client)
-# - target/wasm32-unknown-unknown/release/ten.wasm → /game/ten.wasm
+# - target/wasm32-unknown-unknown/release/bumblebees.wasm → /game/bumblebees.wasm
 # - game.html → /game/game.html
 # - resources/*.ogg → /game/resources/*.ogg
 ```
@@ -140,7 +140,7 @@ For more secure deployment, consider using SSH/SCP instead of FTP:
 
 ```bash
 # Upload via SCP
-scp target/wasm32-unknown-unknown/release/ten.wasm user@server:/path/to/game/
+scp target/wasm32-unknown-unknown/release/bumblebees.wasm user@server:/path/to/game/
 scp game.html user@server:/path/to/game/
 scp resources/*.ogg user@server:/path/to/game/resources/
 ```

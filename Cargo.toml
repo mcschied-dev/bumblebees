@@ -1,9 +1,14 @@
 [package]
-name = "ten"
+name = "bumblebees"
 version = "1.3.0"
 edition = "2021"
 
+[[bin]]
+name = "bumblebees"
+path = "src/main.rs"
+
 [lib]
+name = "bumblebees"
 crate-type = ["cdylib", "rlib"]
 
 [package.metadata.bundle]

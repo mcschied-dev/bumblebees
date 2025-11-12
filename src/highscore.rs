@@ -26,7 +26,7 @@ const MAX_SAVED_SCORES: usize = 50;
 /// # Examples
 ///
 /// ```
-/// use ten::highscore::HighscoreEntry;
+/// use bumblebees::highscore::HighscoreEntry;
 ///
 /// let entry = HighscoreEntry::new("PLAYER1".to_string(), 5000);
 /// assert_eq!(entry.name, "PLAYER1");
@@ -78,7 +78,7 @@ impl HighscoreEntry {
 /// # Examples
 ///
 /// ```no_run
-/// use ten::highscore::HighscoreManager;
+/// use bumblebees::highscore::HighscoreManager;
 ///
 /// let manager = HighscoreManager::new("highscores.txt");
 ///
