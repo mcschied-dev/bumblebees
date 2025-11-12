@@ -5,7 +5,6 @@ use macroquad::audio::{
     load_sound, play_sound, play_sound_once, stop_sound, PlaySoundParams, Sound,
 };
 use macroquad::prelude::*;
-use std::convert::TryInto;
 
 #[cfg(not(target_arch = "wasm32"))]
 use image::GenericImageView;
@@ -551,15 +550,23 @@ impl Game {
             log::warn!("Failed to load Retro Gaming font, using default font");
         }
 
+        // Skip loading large audio files on WASM to reduce initial load time
+        // Background music and intro sound are 33MB and 20MB respectively
+        #[cfg(not(target_arch = "wasm32"))]
         let intro_sound = load_sound_fallback("resources/intro.wav").await.ok();
+        #[cfg(target_arch = "wasm32")]
+        let intro_sound = None;
 
         let shoot_sound = load_sound_fallback("resources/sfx_shoot.wav").await.ok();
 
         let hit_sound = load_sound_fallback("resources/sfx_hit.wav").await.ok();
 
+        #[cfg(not(target_arch = "wasm32"))]
         let background_music = load_sound_fallback("resources/music_background.wav")
             .await
             .ok();
+        #[cfg(target_arch = "wasm32")]
+        let background_music = None;
 
         let bee_sound = load_sound_fallback("resources/sfx_bumblebee.wav")
             .await
