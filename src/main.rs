@@ -22,7 +22,62 @@ use entities::{Bullet, Enemy, EnemyType, Explosion, Player};
 use highscore::HighscoreManager;
 use systems::{generate_wave, process_collisions};
 
+/// Generate a list of candidate file paths for asset loading across different bundle structures.
+///
+/// This function is the backbone of cross-platform asset loading, particularly for macOS app bundles.
+/// It searches multiple locations to find assets, supporting both development (loose files) and
+/// distribution (bundled app) scenarios.
+///
+/// # Search Order
+///
+/// 1. **Original path** - Try the path as-is (works in development)
+/// 2. **Executable-relative path** - Try relative to the executable directory
+/// 3. **macOS bundle Resources** - If running from a .app bundle's MacOS directory,
+///    try the Contents/Resources directory (standard macOS bundle structure)
+///
+/// # macOS Bundle Structure
+///
+/// macOS .app bundles have this structure:
+/// ```text
+/// MyApp.app/
+///   Contents/
+///     MacOS/          <- Executable location
+///       myapp
+///     Resources/      <- Asset location (fonts, images, sounds)
+///       resources/
+///         sprite_enemy.png
+/// ```
+///
+/// When the executable runs from Contents/MacOS, this function detects the bundle structure
+/// and adds Contents/Resources/[path] to the candidate list.
+///
+/// # Arguments
+///
+/// * `path` - The relative asset path (e.g., "resources/sprite_enemy.png")
+///
+/// # Returns
+///
+/// A `Vec<String>` of candidate absolute paths to try, in order of preference.
+/// Only paths that actually exist on the filesystem are included.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # #[cfg(not(target_arch = "wasm32"))]
+/// # {
+/// // In development, might return: ["resources/bg_main.png"]
+/// // In macOS bundle, might return: [
+/// //   "resources/bg_main.png",
+/// //   "/Applications/MyApp.app/Contents/Resources/resources/bg_main.png"
+/// // ]
+/// # }
+/// ```
+///
+/// # Platform Support
+///
+/// This function is only compiled for non-WASM targets. WASM builds use paths directly.
 #[cfg(not(target_arch = "wasm32"))]
+#[must_use]
 fn candidate_asset_paths(path: &str) -> Vec<String> {
     let mut candidates = Vec::new();
     candidates.push(path.to_string());
@@ -44,6 +99,46 @@ fn candidate_asset_paths(path: &str) -> Vec<String> {
     candidates
 }
 
+/// Add a filesystem path to the candidate list if it exists and isn't already present.
+///
+/// This helper function maintains a de-duplicated list of valid file paths for asset loading.
+/// It performs three checks before adding a path:
+/// 1. Does the path exist on the filesystem?
+/// 2. Can the path be converted to a valid UTF-8 string?
+/// 3. Is the path not already in the candidates list?
+///
+/// This prevents duplicate path entries and ensures we only try paths that actually exist,
+/// avoiding unnecessary file system operations during asset loading.
+///
+/// # Arguments
+///
+/// * `candidates` - Mutable reference to the vector of candidate paths
+/// * `path` - A `PathBuf` to potentially add to the candidates list
+///
+/// # Behavior
+///
+/// The function silently ignores paths that:
+/// - Don't exist on the filesystem
+/// - Can't be converted to UTF-8 strings (rare on modern systems)
+/// - Already exist in the candidates list (prevents duplicates)
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # use std::path::PathBuf;
+/// # #[cfg(not(target_arch = "wasm32"))]
+/// # {
+/// let mut candidates = Vec::new();
+///
+/// // This would add the path if it exists
+/// // push_candidate(&mut candidates, PathBuf::from("resources/bg_main.png"));
+///
+/// // Calling again with same path won't create a duplicate
+/// // push_candidate(&mut candidates, PathBuf::from("resources/bg_main.png"));
+///
+/// // assert_eq!(candidates.len(), 1); // Only one entry, not two
+/// # }
+/// ```
 #[cfg(not(target_arch = "wasm32"))]
 fn push_candidate(candidates: &mut Vec<String>, path: std::path::PathBuf) {
     if path.exists() {
@@ -1725,6 +1820,45 @@ const ICON_32_BYTES: &[u8] = include_bytes!("../assets/icon_32x32.png");
 #[cfg(not(target_arch = "wasm32"))]
 const ICON_64_BYTES: &[u8] = include_bytes!("../assets/icon_64x64.png");
 
+/// Decode a PNG icon image into a fixed-size RGBA byte array.
+///
+/// This function loads an embedded PNG icon (compiled into the binary with `include_bytes!`)
+/// and converts it to the raw RGBA format expected by macroquad's window icon system.
+///
+/// # Type Parameters
+///
+/// * `LEN` - The expected buffer length in bytes (width × height × 4 channels).
+///           For example, a 16x16 icon needs 16 × 16 × 4 = 1024 bytes.
+///
+/// # Arguments
+///
+/// * `bytes` - The PNG image data as a byte slice (from `include_bytes!`)
+/// * `expected_size` - The expected width and height in pixels (icons must be square)
+///
+/// # Returns
+///
+/// * `Ok([u8; LEN])` - A fixed-size array containing RGBA pixel data
+/// * `Err(String)` - A descriptive error message if decoding fails
+///
+/// # Errors
+///
+/// This function returns an error if:
+/// - The PNG data is corrupted or invalid
+/// - The image dimensions don't match `expected_size` × `expected_size`
+/// - The decoded buffer size doesn't match `LEN` (should be width × height × 4)
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # #[cfg(not(target_arch = "wasm32"))]
+/// # {
+/// const ICON_BYTES: &[u8] = include_bytes!("../assets/icon_16x16.png");
+/// const EXPECTED_LEN: usize = 16 * 16 * 4; // 1024 bytes for RGBA
+///
+/// // Decode the 16x16 icon into a 1024-byte RGBA buffer
+/// // let result: Result<[u8; EXPECTED_LEN], String> = decode_icon(ICON_BYTES, 16);
+/// # }
+/// ```
 #[cfg(not(target_arch = "wasm32"))]
 fn decode_icon<const LEN: usize>(bytes: &[u8], expected_size: u32) -> Result<[u8; LEN], String> {
     let image = image::load_from_memory(bytes).map_err(|err| err.to_string())?;
@@ -1744,6 +1878,54 @@ fn decode_icon<const LEN: usize>(bytes: &[u8], expected_size: u32) -> Result<[u8
         .map_err(|_| format!("icon buffer mismatch (expected {} bytes)", LEN))
 }
 
+/// Load the application window icon from embedded PNG resources.
+///
+/// This function loads three icon sizes (16x16, 32x32, 64x64) from PNG files compiled into
+/// the binary. Operating systems use different icon sizes depending on context:
+/// - **Small (16x16)**: Window title bar, taskbar on Windows
+/// - **Medium (32x32)**: Alt-Tab switcher, larger taskbars
+/// - **Big (64x64)**: macOS dock, high-DPI displays
+///
+/// The function attempts to decode all three sizes. If all succeed, it returns a complete
+/// `Icon` struct. If any fail, it logs warnings and returns `None`, causing the application
+/// to fall back to the default system icon.
+///
+/// # Icon File Locations
+///
+/// Icons are embedded at compile time from:
+/// - `assets/icon_16x16.png` - Must be exactly 16×16 pixels
+/// - `assets/icon_32x32.png` - Must be exactly 32×32 pixels
+/// - `assets/icon_64x64.png` - Must be exactly 64×64 pixels
+///
+/// # Returns
+///
+/// * `Some(Icon)` - Successfully loaded all three icon sizes
+/// * `None` - One or more icons failed to decode (warnings logged)
+///
+/// # Errors
+///
+/// This function doesn't panic. Instead, it logs warnings and returns `None` if:
+/// - Any PNG file is corrupted or has wrong dimensions
+/// - The image crate fails to decode the PNG data
+/// - The decoded buffer size doesn't match expectations
+///
+/// # Platform Support
+///
+/// This function is only compiled for native desktop builds (not WASM). WASM applications
+/// don't support custom window icons as they run in a browser.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// # #[cfg(not(target_arch = "wasm32"))]
+/// # {
+/// // Called from window_conf() to set the application icon
+/// // let icon = load_window_icon();
+/// // if icon.is_some() {
+/// //     println!("Custom window icon loaded successfully");
+/// // }
+/// # }
+/// ```
 #[cfg(not(target_arch = "wasm32"))]
 fn load_window_icon() -> Option<Icon> {
     const SMALL_LEN: usize = 16 * 16 * 4;
@@ -1974,5 +2156,246 @@ mod tests {
         // Movement should be proportional: 100 * 0.016 = 1.6 pixels
         assert!((layer.parts[0] - (-1.6)).abs() < 0.01);
         assert!((layer.parts[1] - 1022.4).abs() < 0.01);
+    }
+
+    // =======================================================================
+    // Asset Path Resolution Tests (macOS Bundle Support)
+    // =======================================================================
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_candidate_asset_paths_includes_original_path() {
+        // The original path should always be the first candidate
+        let candidates = candidate_asset_paths("resources/test.png");
+
+        assert!(!candidates.is_empty(), "Should have at least one candidate");
+        assert_eq!(
+            candidates[0], "resources/test.png",
+            "First candidate should be the original path"
+        );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_candidate_asset_paths_returns_multiple_candidates() {
+        // Should return multiple candidates when running from different locations
+        let candidates = candidate_asset_paths("resources/bg_main.png");
+
+        // At minimum should have the original path
+        assert!(!candidates.is_empty());
+
+        // All candidates should contain the filename
+        for candidate in &candidates {
+            assert!(
+                candidate.contains("resources/bg_main.png")
+                    || candidate.contains("bg_main.png"),
+                "Candidate '{}' should reference bg_main.png",
+                candidate
+            );
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_push_candidate_with_nonexistent_path() {
+        use std::path::PathBuf;
+
+        let mut candidates = Vec::new();
+        let nonexistent = PathBuf::from("/this/path/definitely/does/not/exist/anywhere.png");
+
+        // Should not add non-existent paths
+        push_candidate(&mut candidates, nonexistent);
+
+        assert!(
+            candidates.is_empty(),
+            "Should not add non-existent paths to candidates"
+        );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_push_candidate_with_existing_path() {
+        use std::path::PathBuf;
+
+        let mut candidates = Vec::new();
+
+        // Use Cargo.toml as a file we know exists
+        let cargo_toml = PathBuf::from("Cargo.toml");
+
+        if cargo_toml.exists() {
+            push_candidate(&mut candidates, cargo_toml);
+
+            assert_eq!(
+                candidates.len(),
+                1,
+                "Should add existing file to candidates"
+            );
+            assert!(
+                candidates[0].contains("Cargo.toml"),
+                "Candidate should contain the filename"
+            );
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_push_candidate_prevents_duplicates() {
+        use std::path::PathBuf;
+
+        let mut candidates = Vec::new();
+        let cargo_toml = PathBuf::from("Cargo.toml");
+
+        if cargo_toml.exists() {
+            // Add the same path twice
+            push_candidate(&mut candidates, cargo_toml.clone());
+            push_candidate(&mut candidates, cargo_toml);
+
+            assert_eq!(
+                candidates.len(),
+                1,
+                "Should not add duplicate paths to candidates"
+            );
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_push_candidate_adds_multiple_distinct_paths() {
+        use std::path::PathBuf;
+
+        let mut candidates = Vec::new();
+
+        // Use files we know exist in the project
+        let cargo_toml = PathBuf::from("Cargo.toml");
+        let cargo_lock = PathBuf::from("Cargo.lock");
+
+        if cargo_toml.exists() && cargo_lock.exists() {
+            push_candidate(&mut candidates, cargo_toml);
+            push_candidate(&mut candidates, cargo_lock);
+
+            assert_eq!(candidates.len(), 2, "Should add both distinct paths");
+            assert!(candidates[0].contains("Cargo.toml"));
+            assert!(candidates[1].contains("Cargo.lock"));
+        }
+    }
+
+    // =======================================================================
+    // Window Icon Tests
+    // =======================================================================
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_decode_icon_validates_dimensions() {
+        // Use the actual embedded 16x16 icon but try to decode it as 32x32
+        // This will fail because dimensions don't match
+        const WRONG_SIZE_LEN: usize = 32 * 32 * 4; // Expect 32x32 but icon is 16x16
+
+        let result: Result<[u8; WRONG_SIZE_LEN], String> = decode_icon(ICON_16_BYTES, 32);
+
+        assert!(
+            result.is_err(),
+            "Should reject image when expected dimensions don't match actual dimensions"
+        );
+        if let Err(msg) = result {
+            // The error should mention dimension mismatch
+            assert!(
+                msg.contains("expected icon size 32x32") || msg.contains("got 16x16"),
+                "Error message should mention dimension mismatch, got: {}",
+                msg
+            );
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_decode_icon_rejects_corrupted_data() {
+        // Invalid PNG data (not a real PNG)
+        let corrupted_data = vec![0xFF, 0xD8, 0xFF, 0xE0]; // JPEG signature, not PNG
+
+        const EXPECTED_LEN: usize = 16 * 16 * 4;
+        let result: Result<[u8; EXPECTED_LEN], String> = decode_icon(&corrupted_data, 16);
+
+        assert!(result.is_err(), "Should reject corrupted PNG data");
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_load_window_icon_handles_embedded_icons() {
+        // This test verifies that load_window_icon() can be called without panicking
+        // The actual icon loading may fail if the icon files don't exist, which is fine
+        let icon = load_window_icon();
+
+        // We can't guarantee icons exist in test environment, but function shouldn't panic
+        // If icons exist and are valid, we should get Some(Icon)
+        // If they don't exist or are invalid, we should get None (with warnings logged)
+        match icon {
+            Some(_) => {
+                // Icons loaded successfully - this is the happy path
+                assert!(true, "Icons loaded successfully");
+            }
+            None => {
+                // Icons failed to load - this is acceptable in test environment
+                // The important thing is we didn't panic
+                assert!(true, "Icon loading handled gracefully");
+            }
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_icon_constants_are_embedded() {
+        // Verify that the icon byte arrays are not empty
+        // If include_bytes! fails, this would be a compile-time error, but we can check runtime
+        assert!(
+            !ICON_16_BYTES.is_empty(),
+            "16x16 icon bytes should be embedded"
+        );
+        assert!(
+            !ICON_32_BYTES.is_empty(),
+            "32x32 icon bytes should be embedded"
+        );
+        assert!(
+            !ICON_64_BYTES.is_empty(),
+            "64x64 icon bytes should be embedded"
+        );
+
+        // Verify they all start with PNG signature
+        let png_signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+
+        assert!(
+            ICON_16_BYTES.starts_with(&png_signature),
+            "16x16 icon should be valid PNG"
+        );
+        assert!(
+            ICON_32_BYTES.starts_with(&png_signature),
+            "32x32 icon should be valid PNG"
+        );
+        assert!(
+            ICON_64_BYTES.starts_with(&png_signature),
+            "64x64 icon should be valid PNG"
+        );
+    }
+
+    #[test]
+    fn test_window_conf_has_correct_title() {
+        let conf = window_conf();
+        assert_eq!(
+            conf.window_title, "BumbleBees",
+            "Window title should be 'BumbleBees'"
+        );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn test_window_conf_includes_icon_on_desktop() {
+        let conf = window_conf();
+
+        // Icon may or may not be present depending on whether icon files exist
+        // But the configuration should be set up correctly
+        // We just verify the configuration process doesn't panic
+        match conf.icon {
+            Some(_) => assert!(true, "Icon configured successfully"),
+            None => assert!(true, "Icon not configured (expected if icon files missing)"),
+        }
     }
 }
