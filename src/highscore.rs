@@ -460,22 +460,19 @@ impl HighscoreManager {
             fn js_localstorage_set(key: *const c_char, value: *const c_char);
         }
 
-        match serde_json::to_string(entries) {
-            Ok(json_str) => unsafe {
-                let key = match CString::new(self.storage_key.as_str()) {
-                    Ok(k) => k,
-                    Err(_) => return,
-                };
+        if let Ok(json_str) = serde_json::to_string(entries) { unsafe {
+            let key = match CString::new(self.storage_key.as_str()) {
+                Ok(k) => k,
+                Err(_) => return,
+            };
 
-                let value = match CString::new(json_str.as_str()) {
-                    Ok(v) => v,
-                    Err(_) => return,
-                };
+            let value = match CString::new(json_str.as_str()) {
+                Ok(v) => v,
+                Err(_) => return,
+            };
 
-                js_localstorage_set(key.as_ptr(), value.as_ptr());
-            },
-            Err(_) => {}
-        }
+            js_localstorage_set(key.as_ptr(), value.as_ptr());
+        } }
     }
 }
 

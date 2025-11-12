@@ -222,7 +222,7 @@ Resources are loaded in `Game::new()` (src/main.rs:256) following game developme
 - **Sprites:** `sprite_enemy.png`
 - **VFX:** `vfx_explosion_01.png`, `vfx_explosion_02.png`, `vfx_explosion_03.png` (3-frame animation)
 - **UI:** `ui_logo.png`, `ui_font.png` (custom pixel font)
-- **Audio:** `sfx_shoot.wav`, `sfx_hit.wav`, `music_background.wav` (looped)
+- **Audio:** `sfx_shoot.wav`, `sfx_hit.wav`, `intro.ogg` (OGG Vorbis), `music_background.ogg` (OGG Vorbis, looped)
 
 All resources loaded from `resources/` directory with fallback textures for missing files. Loading is logged for debugging.
 

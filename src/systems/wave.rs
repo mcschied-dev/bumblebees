@@ -122,7 +122,7 @@ fn generate_diamond_formation(wave: u32) -> Vec<Enemy> {
     let center_y = 200.0;
 
     // Diamond: expanding then contracting rows
-    let rows = vec![1, 3, 5, 7, 5, 3, 1]; // Creates diamond shape
+    let rows = [1, 3, 5, 7, 5, 3, 1]; // Creates diamond shape
 
     for (row_idx, &count) in rows.iter().enumerate() {
         let y = center_y - 100.0 + row_idx as f32 * 40.0;

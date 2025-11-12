@@ -241,7 +241,8 @@ your-webserver/
     ├── vfx_explosion_03.png  (explosion frame 3)
     ├── sfx_shoot.wav         (shooting sound effect)
     ├── sfx_hit.wav           (hit sound effect)
-    └── music_background.wav  (background music - 32MB)
+    ├── intro.ogg             (intro music - OGG Vorbis, 1.8MB)
+    └── music_background.ogg  (background music - OGG Vorbis, 2.5MB)
 ```
 
 **Note:** The WASM file and security reports are not in the repo. Build them locally with the commands above.
@@ -282,7 +283,8 @@ ten/
 │   ├── vfx_explosion_01-03.png # Explosion animation frames
 │   ├── sfx_shoot.wav          # Shooting sound effect
 │   ├── sfx_hit.wav            # Hit sound effect
-│   └── music_background.wav   # Background music
+│   ├── intro.ogg              # Intro music (OGG Vorbis)
+│   └── music_background.ogg   # Background music (OGG Vorbis)
 ├── assets/              # Additional assets
 │   ├── icon.icns        # macOS application icon (1024x1024)
 │   ├── icon_16x16.png   # Window icon (16x16)

@@ -19,6 +19,7 @@ fn update_progress(message: &str) {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
 fn update_progress(_message: &str) {
     // No-op for desktop
 }
@@ -224,7 +225,7 @@ async fn load_font_fallback(path: &str) -> Option<Font> {
                 return Some(font);
             }
         }
-        return None;
+        None
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -459,7 +460,8 @@ impl Game {
         //     vfx_explosion_01.png (first explosion frame)
         //     ui_logo.png        (main logo)
         //     sfx_shoot.wav      (shooting sound)
-        //     music_background.wav (background music)
+        //     intro.ogg          (intro music, OGG Vorbis)
+        //     music_background.ogg (background music, OGG Vorbis)
         //
         // This convention makes asset management clearer and follows industry
         // standards for game development asset organization.
@@ -593,13 +595,13 @@ impl Game {
         #[cfg(target_arch = "wasm32")]
         println!("Loading audio files...");
 
-        let intro_sound = load_sound_fallback("resources/intro.wav").await.ok();
+        let intro_sound = load_sound_fallback("resources/intro.ogg").await.ok();
 
         let shoot_sound = load_sound_fallback("resources/sfx_shoot.wav").await.ok();
 
         let hit_sound = load_sound_fallback("resources/sfx_hit.wav").await.ok();
 
-        let background_music = load_sound_fallback("resources/music_background.wav")
+        let background_music = load_sound_fallback("resources/music_background.ogg")
             .await
             .ok();
 
@@ -806,7 +808,7 @@ impl Game {
                 if let Some(ref sound) = self.shoot_sound {
                     play_sound_once(sound);
                 }
-                self.bullets.extend(self.bullet_spawn_buffer.drain(..));
+                self.bullets.append(&mut self.bullet_spawn_buffer);
             }
         }
     }
@@ -2049,8 +2051,6 @@ async fn main() {
 #[cfg(target_arch = "wasm32")]
 #[macroquad::main(window_conf)]
 async fn main() {
-    // WASM version
-    update_progress("Starting BumbleBees game (WASM)");
     update_progress("Initializing game...");
 
     let mut game = Game::new().await;

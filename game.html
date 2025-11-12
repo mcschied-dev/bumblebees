@@ -171,16 +171,16 @@
 
     <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
     <script>
-        // Loading progress tracker
+        // Loading progress tracker - maps loading messages to progress percentages
         const loadingSteps = {
             'Starting BumbleBees game (WASM)': 5,
             'Initializing game...': 10,
-            'Game::new() - Starting resource load': 15,
-            'Loading bg_main.png...': 25,
-            'Loaded bg_main.png successfully': 35,
-            'Loading audio files...': 45,
-            'All audio loaded': 85,
-            'Game::new() - All resources loaded, creating game state': 95,
+            'Loading background textures...': 20,
+            'Loading UI and game textures...': 40,
+            'Loading fonts...': 60,
+            'Loading audio files...': 75,
+            'Initializing game systems...': 90,
+            'Creating game state...': 95,
             'Game initialized successfully!': 100
         };
 
@@ -193,7 +193,8 @@
                 statusEl.textContent = message;
 
                 // Update progress bar
-                const progress = loadingSteps[message] || progressBar.style.width;
+                const currentProgress = parseInt(progressBar.style.width) || 0;
+                const progress = loadingSteps[message] || currentProgress;
                 if (typeof progress === 'number') {
                     progressBar.style.width = progress + '%';
                     progressBar.textContent = progress + '%';
@@ -213,8 +214,14 @@
 
         // Global function that WASM can call directly
         window.update_loading_progress = function(msg_ptr, msg_len) {
+            // Ensure WASM memory is available
+            if (!wasmMemory && !tryCaptureMemory()) {
+                console.warn("WASM memory not available yet for loading progress");
+                return;
+            }
+
             // Read string from WASM memory
-            const bytes = new Uint8Array(wasm_memory.buffer, msg_ptr, msg_len);
+            const bytes = new Uint8Array(wasmMemory.buffer, msg_ptr, msg_len);
             const message = new TextDecoder().decode(bytes);
 
             console.log("Loading progress:", message);
