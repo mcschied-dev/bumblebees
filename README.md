@@ -10,16 +10,24 @@ A retro-styled Space Invaders arcade shooter built in Rust with macroquad. Featu
 ## ✨ Features
 
 ### 🎮 Core Gameplay
+- **4 Enemy Types**:
+  - Standard (White): 1 hit, 10 points
+  - Fast (Yellow): 1 hit, 1.5x speed, 20 points
+  - Tank (Red): 3 hits with health bar, 50 points
+  - Swooper (Cyan): 1 hit, 30 points
+- **4 Formation Patterns**: Grid, V-shape, Diamond, and Scattered formations that cycle every 4 waves
 - **Authentic Space Invaders Movement**: Enemies move as a formation, reverse direction when any enemy hits edge, and descend together
-- **Centered Enemy Formations**: Enemy waves appear perfectly centered at the top of the screen
-- **Progressive Difficulty**: Each wave adds more enemy rows and increases speed
+- **Progressive Difficulty**: Enemy types unlock progressively, speed increases per wave
 - **Player Upgrades**: Wider ship and more simultaneous shots per wave completed
 
 ### 🎨 Retro Visual Effects
 - **Custom Pixel Font**: Authentic 8x8 pixel font for highscore display (A-Z, 0-9, symbols)
+- **C64-Style Rainbow Effects**: CPU-based per-letter rainbow color cycling with sine wave wobble on menu and game over screens
 - **C64-Style Scrolling Highscores**: Top highscores scroll upward like classic Commodore 64 games
 - **9-Layer Parallax Background**: Multi-depth scrolling background with sky, clouds, and terrain layers
 - **Explosion Animations**: 3-frame stop-motion explosion effects when enemies are destroyed
+- **Color-Coded Enemies**: Each enemy type has distinct coloring (White/Yellow/Red/Cyan)
+- **Health Bars**: Damaged Tank enemies display health bars
 - **Red Bold Score Display**: Prominent red score text with shadow effect during gameplay
 - **Enhanced Intro Screen**: Game icon, repositioned highscore display, and improved layout
 - **Classic Arcade Aesthetics**: Retro-styled graphics and animations
@@ -38,8 +46,9 @@ A retro-styled Space Invaders arcade shooter built in Rust with macroquad. Featu
 - **Comprehensive Logging**: Debug logging system for troubleshooting
 
 ### 🌐 Cross-Platform Support
-- **Desktop**: macOS, Linux, Windows
+- **Desktop**: macOS (with app bundle), Linux, Windows
 - **Web**: Full WASM support for browser play
+- **Mobile**: iOS touch controls (left/right zones, tap to shoot)
 
 ## 🎮 How to Play
 
@@ -66,11 +75,16 @@ A retro-styled Space Invaders arcade shooter built in Rust with macroquad. Featu
 - **Space**: Start the game (recommended for WASM)
 - **Mouse Click**: Click the START GAME button
 
-#### During Gameplay
+#### During Gameplay (Desktop)
 - **Left Arrow** (←): Move player left
 - **Right Arrow** (→): Move player right
 - **Space**: Fire bullets
-- **ESC**: Quit game (desktop only)
+- **ESC**: Quit game
+
+#### During Gameplay (Touch/Mobile)
+- **Touch left side of screen**: Move player left
+- **Touch right side of screen**: Move player right
+- **Tap anywhere**: Fire bullets
 
 #### Game Over Screen
 - **R**: Return to main menu
@@ -79,18 +93,22 @@ A retro-styled Space Invaders arcade shooter built in Rust with macroquad. Featu
 
 Destroy all enemies before they reach the **defender line** at the bottom of the screen!
 
-- Each enemy destroyed = **10 points**
+- **Standard enemies**: 10 points
+- **Fast enemies**: 20 points
+- **Tank enemies**: 50 points (requires 3 hits)
+- **Swooper enemies**: 30 points
 - Complete a wave to advance to the next level
-- Each wave adds more enemy rows
+- Formation patterns cycle every 4 waves
 - Survive as long as possible to achieve a high score
 
 ### Game Mechanics
 
 #### Wave System
-- **Wave 1**: 3 rows of 10 enemies (30 total)
-- **Wave 2**: 4 rows of 10 enemies (40 total)
-- **Wave 3**: 5 rows of 10 enemies (50 total)
-- And so on...
+- **Wave 1**: Classic grid formation (50 Standard enemies)
+- **Wave 2**: V-shape formation (56 enemies, introduces Fast enemies)
+- **Wave 3**: Diamond formation (25 enemies, introduces Tank enemies)
+- **Wave 4**: Scattered formation (35 enemies, introduces Swooper enemies)
+- **Wave 5+**: Patterns repeat with progressively harder enemy mixes
 
 #### Player Upgrades
 After completing each wave, you gain:
@@ -104,7 +122,12 @@ After completing each wave, you gain:
   - Reverses direction
   - Moves down 40 pixels smoothly
 - **Centered Formations**: Enemy waves start perfectly centered at the top
-- **Alternating Directions**: Row 0 moves right, Row 1 moves left, Row 2 moves right, etc.
+- **Enemy Types**:
+  - Standard: Basic movement, 1 hit
+  - Fast: 1.5x movement speed, 1 hit
+  - Tank: Slower (0.7x speed), 3 hits with visible health bar
+  - Swooper: Normal speed, 1 hit
+- **Progressive Unlocks**: New enemy types appear in later waves
 - **Game Over**: If any enemy crosses the defender line → **GAME OVER**
 
 #### Difficulty Scaling
@@ -261,7 +284,16 @@ ten/
 │   ├── sfx_hit.wav            # Hit sound effect
 │   └── music_background.wav   # Background music
 ├── assets/              # Additional assets
-│   └── icon.icns        # macOS application icon
+│   ├── icon.icns        # macOS application icon (1024x1024)
+│   ├── icon_16x16.png   # Window icon (16x16)
+│   ├── icon_32x32.png   # Window icon (32x32)
+│   └── icon_64x64.png   # Window icon (64x64)
+├── fuzz/                # Fuzzing targets
+│   ├── Cargo.toml       # Fuzzing dependencies
+│   └── fuzz_targets/    # Fuzz target implementations
+│       ├── fuzz_highscore.rs    # CSV parser fuzzer
+│       ├── fuzz_asset_paths.rs  # Path resolution fuzzer
+│       └── fuzz_icon_decode.rs  # PNG decoder fuzzer
 ├── Cargo.toml           # Rust dependencies and metadata
 ├── CLAUDE.md            # Developer documentation
 ├── AGENTS.md            # Build/lint/test commands reference
@@ -275,7 +307,7 @@ ten/
 ### Testing
 
 ```bash
-# Run all tests
+# Run all tests (73 unit tests + 2 doc tests)
 cargo test
 
 # Run with output
@@ -284,6 +316,33 @@ cargo test -- --nocapture
 # Run specific test module
 cargo test entities::player::tests
 ```
+
+### Fuzzing
+
+The project includes fuzzing support for security testing:
+
+```bash
+# Install cargo-fuzz (requires nightly Rust)
+cargo install cargo-fuzz
+rustup toolchain install nightly
+
+# List available fuzz targets
+cargo fuzz list
+
+# Run highscore CSV parser fuzzer
+cargo +nightly fuzz run fuzz_highscore -- -max_total_time=60
+
+# Run asset path resolution fuzzer
+cargo +nightly fuzz run fuzz_asset_paths -- -max_total_time=60
+
+# Run icon PNG decoder fuzzer
+cargo +nightly fuzz run fuzz_icon_decode -- -max_total_time=60
+```
+
+**Fuzz Targets:**
+- `fuzz_highscore`: Tests CSV parsing with malformed input
+- `fuzz_asset_paths`: Tests path resolution for security vulnerabilities
+- `fuzz_icon_decode`: Tests PNG decoding with corrupted data
 
 ### Code Quality
 
@@ -356,7 +415,9 @@ pub const BACKGROUND_SCROLL_SPEED: f32 = 50.0;
 
 // Difficulty scaling
 pub const SPEED_INCREASE_PER_WAVE: f32 = 20.0;
-pub const POINTS_PER_ENEMY: u32 = 10;
+
+// Enemy types have individual point values:
+// Standard: 10, Fast: 20, Tank: 50, Swooper: 30
 ```
 
 ### Replacing Assets
@@ -399,33 +460,44 @@ Place your own assets in the `resources/` directory:
 - **Game Engine**: macroquad 0.4 (WASM-compatible 2D graphics)
 - **Audio**: macroquad audio system (WAV format)
 - **Graphics**: OpenGL/Metal/Vulkan via wgpu
-- **Cross-Platform**: Desktop (macOS, Linux, Windows) + Web (WASM)
+- **Cross-Platform**: Desktop (macOS, Linux, Windows) + Web (WASM) + iOS touch support
 - **Build System**: Cargo with conditional compilation for WASM
-- **Testing**: Comprehensive unit tests (39 tests passing)
-- **Code Quality**: Clippy-clean with generated documentation
+- **Testing**: Comprehensive unit tests (73 tests passing + 2 doc tests)
+- **Fuzzing**: 3 fuzz targets for security testing (requires nightly Rust)
+- **Code Quality**: Clippy-clean with full Rustdoc documentation
+- **Icons**: Multi-resolution window icons (16x16, 32x32, 64x64) + macOS app icon
 
 ## 🔧 Advanced Configuration
 
 ### macOS Bundle
 
-The game can be bundled as a macOS .app:
+The game can be bundled as a native macOS .app with full icon support:
 
 ```bash
 # Install cargo-bundle
 cargo install cargo-bundle
 
-# Create .app bundle
+# Create .app bundle (automatically includes resources)
 cargo bundle --release
+
+# Bundle will be created at:
+# target/release/bundle/osx/BumbleBees.app
 ```
 
 The bundle configuration is in `Cargo.toml`:
 ```toml
 [package.metadata.bundle]
-name = "Hummel"
-identifier = "com.mcschied.hummel"
+name = "BumbleBees"
+identifier = "com.mcschied.bumblebees"
 icon = ["assets/icon.icns"]
 resources = ["resources"]
 ```
+
+**Features:**
+- Proper icon display in macOS dock and title bar
+- Resources loaded from bundle Contents/Resources directory
+- Fallback to Contents/MacOS/resources for compatibility
+- Window icons (16x16, 32x32, 64x64) embedded in executable
 
 ## 📄 License
 
