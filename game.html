@@ -51,17 +51,55 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 28px;
+            font-size: 24px;
             text-align: center;
             z-index: 1000;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             padding: 40px 60px;
             border-radius: 16px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            min-width: 400px;
         }
 
         #loading.hidden {
             display: none;
+        }
+
+        #loading-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        #loading-status {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #aaa;
+            min-height: 20px;
+        }
+
+        #progress-container {
+            width: 100%;
+            height: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .loader {
@@ -110,7 +148,11 @@
 </head>
 <body>
     <div id="loading">
-        🐝 Loading BumbleBees...
+        <div id="loading-title">🐝 BumbleBees</div>
+        <div id="loading-status">Initializing...</div>
+        <div id="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
         <div class="loader"></div>
     </div>
 
@@ -128,6 +170,61 @@
     </div>
 
     <script src="https://not-fl3.github.io/miniquad-samples/mq_js_bundle.js"></script>
+    <script>
+        // Loading progress tracker
+        const loadingSteps = {
+            'Starting BumbleBees game (WASM)': 5,
+            'Initializing game...': 10,
+            'Game::new() - Starting resource load': 15,
+            'Loading bg_main.png...': 25,
+            'Loaded bg_main.png successfully': 35,
+            'Loading audio files...': 45,
+            'All audio loaded': 85,
+            'Game::new() - All resources loaded, creating game state': 95,
+            'Game initialized successfully!': 100
+        };
+
+        function updateLoadingProgress(message) {
+            const statusEl = document.getElementById('loading-status');
+            const progressBar = document.getElementById('progress-bar');
+
+            if (statusEl && progressBar) {
+                // Update status text
+                statusEl.textContent = message;
+
+                // Update progress bar
+                const progress = loadingSteps[message] || progressBar.style.width;
+                if (typeof progress === 'number') {
+                    progressBar.style.width = progress + '%';
+                    progressBar.textContent = progress + '%';
+                }
+
+                // Hide loading screen when complete
+                if (progress === 100) {
+                    setTimeout(() => {
+                        const loadingEl = document.getElementById('loading');
+                        if (loadingEl) {
+                            loadingEl.style.display = 'none';
+                        }
+                    }, 500);
+                }
+            }
+        }
+
+        // Intercept console.log to track loading progress
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            const message = args.join(' ');
+
+            // Check if this is a loading progress message
+            if (loadingSteps[message] !== undefined) {
+                updateLoadingProgress(message);
+            }
+
+            // Call original console.log
+            originalConsoleLog.apply(console, args);
+        };
+    </script>
     <script>
         // localStorage bridge for WASM
         // Global references that will be set by the plugin
@@ -337,9 +434,8 @@
         });
 
         // The miniquad bundle will automatically call load() and start the game
-        // We just need to hide the loading indicator once the game starts
         window.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('loading').textContent = '🐝 Loading game...';
+            updateLoadingProgress('Initializing...');
 
             const canvas = document.getElementById('glcanvas');
 
@@ -361,20 +457,7 @@
             // Call load function from mq_js_bundle
             if (typeof load === 'function') {
                 load("ten.wasm?v=" + Date.now());
-
-                // Hide loading screen after a short delay (game will start automatically)
-                setTimeout(function() {
-                    const loadingEl = document.getElementById('loading');
-                    if (loadingEl) {
-                        loadingEl.style.display = 'none';
-                    }
-                    const errorEl = document.getElementById('error');
-                    if (errorEl) {
-                        errorEl.style.display = 'none';
-                    }
-                    // Focus canvas again after game loads
-                    canvas.focus();
-                }, 1000);
+                // Loading screen will be hidden automatically when game reaches 100%
             } else {
                 document.getElementById('loading').innerHTML = '❌ Failed to load miniquad bundle';
             }
